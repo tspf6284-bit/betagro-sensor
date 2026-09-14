@@ -3,262 +3,548 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Betagro TSPF Sensor Dashboard (Real-time)</title>
-    <!-- Chart.js สำหรับวาดกราฟ -->
+    <title>betagro_sensor Dashboard</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase App & Database SDK (v8.10.1) -->
+    <!-- html2pdf.js สำหรับส่งออก PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Firebase SDK (v8.10.1) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         * {
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
         }
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: #f1f5f9;
+            color: #334155;
+            min-height: 100vh;
+        }
+
+        /* ---------------- Login Section ---------------- */
+        .login-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             padding: 20px;
         }
-        .header {
+        .login-card {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
             text-align: center;
+        }
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: #fef9c3;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+        }
+        .login-card h2 {
+            font-size: 26px;
+            color: #1e293b;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+        .login-card p {
+            color: #64748b;
+            font-size: 14px;
             margin-bottom: 25px;
-            padding: 20px;
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .header h1 {
-            font-size: 24px;
-            color: #38bdf8;
-            margin-bottom: 5px;
+        .form-group {
+            text-align: left;
+            margin-bottom: 18px;
         }
-        .header p {
-            color: #94a3b8;
-            font-size: 14px;
-        }
-        .status-bar {
-            text-align: center;
-            font-size: 14px;
-            margin-bottom: 20px;
-            color: #cbd5e1;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
+        .form-group label {
+            display: block;
             font-size: 13px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 8px;
         }
-        .badge.online { background: #22c55e; color: #fff; }
-        .badge.offline { background: #ef4444; color: #fff; }
-        
-        .card-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+        .input-box {
+            position: relative;
         }
-        .card {
-            background: #1e293b;
-            padding: 25px;
-            border-radius: 16px;
-            border: 1px solid #334155;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-            text-align: center;
-            transition: transform 0.2s;
+        .input-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
         }
-        .card:hover { transform: translateY(-3px); }
-        .card .icon { font-size: 32px; margin-bottom: 10px; }
-        .card h3 { font-size: 16px; color: #94a3b8; margin-bottom: 10px; }
-        .card .value { font-size: 42px; font-weight: bold; margin: 10px 0; }
-        .card .unit { font-size: 14px; color: #64748b; }
-
-        .card.temp .value { color: #f87171; }
-        .card.hum .value { color: #38bdf8; }
-        .card.wind .value { color: #4ade80; }
-
-        .chart-container {
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid #334155;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-        }
-        .alert-box {
-            background-color: #7f1d1d;
-            color: #fca5a5;
-            padding: 15px;
+        .input-box input {
+            width: 100%;
+            padding: 12px 14px 12px 42px;
+            border: 1px solid #cbd5e1;
             border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-            text-align: center;
-            font-weight: bold;
-            border: 1px solid #ef4444;
+            font-size: 14px;
+            outline: none;
+            transition: border 0.2s;
         }
+        .input-box input:focus {
+            border-color: #3b82f6;
+        }
+        .btn-login {
+            width: 100%;
+            background: #1e293b;
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .btn-login:hover {
+            background: #0f172a;
+        }
+        .login-error {
+            color: #ef4444;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        /* ---------------- Dashboard Section ---------------- */
+        .dashboard-container {
+            display: none;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: #ffffff;
+            padding: 15px 25px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+            margin-bottom: 20px;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+            color: #475569;
+        }
+        .badge-status {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .badge-status.online { background: #dcfce7; color: #15803d; }
+        .badge-status.offline { background: #fee2e2; color: #b91c1c; }
+        
+        .btn-logout {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-logout:hover { background: #dc2626; }
+
+        /* Cards Row */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .sensor-card {
+            background: #ffffff;
+            padding: 20px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+            border-top: 5px solid #cbd5e1;
+        }
+        .sensor-card.temp { border-top-color: #ef4444; }
+        .sensor-card.hum { border-top-color: #3b82f6; }
+        .sensor-card.wind { border-top-color: #22c55e; }
+
+        .sensor-card h3 {
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+        .sensor-card .val {
+            font-size: 32px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+        .sensor-card .sub-text {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* Chart Panel */
+        .chart-card {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .chart-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .chart-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-group {
+            background: #f1f5f9;
+            padding: 3px;
+            border-radius: 8px;
+            display: flex;
+        }
+        .btn-filter {
+            background: transparent;
+            border: none;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-filter.active {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .date-picker {
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 13px;
+            outline: none;
+            color: #334155;
+        }
+        .btn-pdf {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-pdf:hover { background: #dc2626; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>TSPF Smart Farm Monitor (Real-time)</h1>
-        <p>ระบบติดตามสภาพอากาศฟาร์มเบทาโกร Real-time Dashboard</p>
-    </div>
-
-    <div class="status-bar">
-        สถานะบอร์ด: <span id="connStatus" class="badge offline">กำลังเชื่อมต่อ...</span> | 
-        อัปเดตล่าสุด: <span id="lastUpdate">--:--:--</span>
-    </div>
-
-    <div id="alertBox" class="alert-box">
-        🚨 คำเตือน: พบค่าผิดปกติในระบบ!
-    </div>
-
-    <div class="card-container">
-        <!-- การ์ดอุณหภูมิ -->
-        <div class="card temp">
-            <div class="icon">🌡️</div>
-            <h3>อุณหภูมิ (Temperature)</h3>
-            <div class="value" id="tempVal">--.-</div>
-            <div class="unit">องศาเซลเซียส (°C)</div>
-        </div>
-
-        <!-- การ์ดความชื้น -->
-        <div class="card hum">
-            <div class="icon">💧</div>
-            <h3>ความชื้น (Humidity)</h3>
-            <div class="value" id="humVal">--.-</div>
-            <div class="unit">เปอร์เซ็นต์ (%RH)</div>
-        </div>
-
-        <!-- การ์ดความเร็วลม -->
-        <div class="card wind">
-            <div class="icon">🌪️</div>
-            <h3>ความเร็วลม (Wind Speed)</h3>
-            <div class="value" id="windVal">-.--</div>
-            <div class="unit">เมตร/วินาที (m/s)</div>
+    <!-- 1. LOGIN PAGE -->
+    <div class="login-wrapper" id="loginWrapper">
+        <div class="login-card">
+            <div class="login-icon">⛅</div>
+            <h2>betagro_sensor</h2>
+            <p>เข้าสู่ระบบเพื่อดูแดชบอร์ดข้อมูล Real-time</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>ชื่อผู้ใช้งาน (Username)</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้งาน" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>รหัสผ่าน (Password)</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
+                <div class="login-error" id="loginError">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
+            </form>
         </div>
     </div>
 
-    <!-- ส่วนกราฟ -->
-    <div class="chart-container">
-        <canvas id="sensorChart" width="400" height="180"></canvas>
+    <!-- 2. DASHBOARD PAGE -->
+    <div class="dashboard-container" id="dashboardContainer">
+        
+        <!-- Navbar -->
+        <div class="navbar">
+            <div class="nav-brand">
+                <span>⛅</span> betagro_sensor
+            </div>
+            <div class="nav-user">
+                <span>ผู้ใช้: <strong id="loggedInUser">admin</strong></span>
+                <span class="badge-status offline" id="statusBadge">• Offline</span>
+                <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
+            </div>
+        </div>
+
+        <!-- Sensor Value Cards -->
+        <div class="card-grid">
+            <div class="sensor-card temp">
+                <h3>อุณหภูมิ (TEMPERATURE)</h3>
+                <div class="val"><span id="tempVal">--.-</span> °C</div>
+                <div class="sub-text">อัปเดตล่าสุด: <span id="tempTime">--:--:--</span></div>
+            </div>
+
+            <div class="sensor-card hum">
+                <h3>ความชื้น (HUMIDITY)</h3>
+                <div class="val"><span id="humVal">--.-</span> %</div>
+                <div class="sub-text">อัปเดตล่าสุด: <span id="humTime">--:--:--</span></div>
+            </div>
+
+            <div class="sensor-card wind">
+                <h3>ความเร็วลม (WIND SPEED)</h3>
+                <div class="val"><span id="windVal">-.--</span> m/s</div>
+                <div class="sub-text">อัปเดตล่าสุด: <span id="windTime">--:--:--</span></div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="chart-card" id="pdfReportArea">
+            <div class="chart-header">
+                <div class="chart-title">
+                    <span>📈</span> กราฟแสดงผล Real-time & ย้อนหลัง
+                </div>
+                <div class="chart-controls">
+                    <div class="btn-group">
+                        <button class="btn-filter active" onclick="setFilter(this)">1 วัน</button>
+                        <button class="btn-filter" onclick="setFilter(this)">1 Week</button>
+                        <button class="btn-filter" onclick="setFilter(this)">1 เดือน</button>
+                    </div>
+                    <input type="date" class="date-picker" id="datePicker">
+                    <button class="btn-pdf" onclick="exportPDF()">
+                        <i class="fa-solid fa-file-pdf"></i> บันทึกเป็น PDF
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <canvas id="realtimeChart" height="110"></canvas>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // -------------------------------------------------------------
-        // 1. กำหนดค่า Firebase Config
-        // -------------------------------------------------------------
+        // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
             databaseURL: "https://betagro-sensor-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
-
-        // เริ่มต้นใช้งาน Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // -------------------------------------------------------------
-        // 2. ตั้งค่า Chart.js
-        // -------------------------------------------------------------
-        const ctx = document.getElementById('sensorChart').getContext('2d');
-        const sensorChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    { label: 'อุณหภูมิ (°C)', borderColor: '#f87171', backgroundColor: 'rgba(248, 113, 113, 0.1)', data: [], fill: true, tension: 0.3 },
-                    { label: 'ความชื้น (%)', borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', data: [], fill: true, tension: 0.3 },
-                    { label: 'ความเร็วลม (m/s)', borderColor: '#4ade80', backgroundColor: 'rgba(74, 222, 128, 0.1)', data: [], fill: true, tension: 0.3 }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    title: { display: true, text: 'แนวโน้มข้อมูลเซ็นเซอร์ Real-time', color: '#94a3b8' },
-                    legend: { labels: { color: '#cbd5e1' } }
-                },
-                scales: {
-                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
-                }
-            }
-        });
+        // --- 2. AUTHENTICATION LOGIC ---
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
 
-        // -------------------------------------------------------------
-        // 3. ดึงข้อมูลแบบ Real-time Listener จาก Path /weather_data
-        // -------------------------------------------------------------
-        const weatherRef = database.ref('weather_data');
-
-        weatherRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                // อ่านค่าตาม Key ที่บอร์ด ESP32 ส่งขึ้นมา
-                const temp = parseFloat(data.temperature || 0).toFixed(1);
-                const hum = parseFloat(data.humidity || 0).toFixed(1);
-                const wind = parseFloat(data.wind_speed || 0).toFixed(2);
-                const boardId = data.board_id || 1;
-
-                // แสดงผลบนการ์ด
-                document.getElementById('tempVal').innerText = temp;
-                document.getElementById('humVal').innerText = hum;
-                document.getElementById('windVal').innerText = wind;
-                
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('th-TH');
-                document.getElementById('lastUpdate').innerText = timeStr;
-
-                const connBadge = document.getElementById('connStatus');
-                connBadge.innerText = "ออนไลน์ (Node " + boardId + ")";
-                connBadge.className = "badge online";
-
-                // เช็กเงื่อนไขแจ้งเตือนบนหน้าเว็บ
-                checkAlerts(data.temperature, data.wind_speed);
-
-                // เพิ่มข้อมูลลงกราฟ
-                updateChart(timeStr, data.temperature, data.humidity, data.wind_speed);
-            }
-        }, (error) => {
-            console.error("Firebase Error:", error);
-            const connBadge = document.getElementById('connStatus');
-            connBadge.innerText = "การเชื่อมต่อขัดข้อง";
-            connBadge.className = "badge offline";
-        });
-
-        // -------------------------------------------------------------
-        // 4. ฟังก์ชันเสริม (แจ้งเตือน + กราฟ)
-        // -------------------------------------------------------------
-        function checkAlerts(temp, wind) {
-            const alertBox = document.getElementById('alertBox');
-            let messages = [];
-
-            if (temp > 34.0) messages.push("อุณหภูมิสูงเกินกำหนด (> 34°C)");
-            if (temp < 25.0) messages.push("อุณหภูมิต่ำกว่ากำหนด (< 25°C)");
-            if (wind <= 0.0) messages.push("พัดลมหยุดหมุน (0.0 m/s)");
-
-            if (messages.length > 0) {
-                alertBox.style.display = "block";
-                alertBox.innerText = "🚨 คำเตือน: " + messages.join(" | ");
+            // กำหนด Username: admin / Password: 123456
+            if (user === 'admin' && pass === '123456') {
+                document.getElementById('loggedInUser').innerText = user;
+                document.getElementById('loginWrapper').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                initChart();
+                startFirebaseRealtime();
             } else {
-                alertBox.style.display = "none";
+                document.getElementById('loginError').style.display = 'block';
             }
+        });
+
+        function logout() {
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('loginWrapper').style.display = 'flex';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginError').style.display = 'none';
         }
 
-        function updateChart(time, temp, hum, wind) {
-            // เก็บข้อมูลบนกราฟสูงสุด 20 จุด
-            if (sensorChart.data.labels.length > 20) {
-                sensorChart.data.labels.shift();
-                sensorChart.data.datasets[0].data.shift();
-                sensorChart.data.datasets[1].data.shift();
-                sensorChart.data.datasets[2].data.shift();
-            }
+        // Setting default date to current date
+        document.getElementById('datePicker').valueAsDate = new Date();
 
-            sensorChart.data.labels.push(time);
-            sensorChart.data.datasets[0].data.push(temp);
-            sensorChart.data.datasets[1].data.push(hum);
-            sensorChart.data.datasets[2].data.push(wind);
-            sensorChart.update();
+        // --- 3. CHART.JS INITIALIZATION ---
+        let sensorChart;
+        function initChart() {
+            const ctx = document.getElementById('realtimeChart').getContext('2d');
+            sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'อุณหภูมิ (°C)',
+                            borderColor: '#ef4444',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            data: [],
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'ความชื้น (%)',
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            data: [],
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'ความเร็วลม (m/s)',
+                            borderColor: '#22c55e',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            data: [],
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            grid: { color: '#f1f5f9' },
+                            title: { display: true, text: 'เวลา (HH:mm:ss)', font: { weight: 'bold' } }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { weight: 'bold' } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            min: 0,
+                            max: 2.0,
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'ความเร็วลม (m/s)', font: { weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 4. FIREBASE REAL-TIME DATA LISTENER ---
+        function startFirebaseRealtime() {
+            const weatherRef = database.ref('weather_data');
+
+            weatherRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const temp = parseFloat(data.temperature || 0).toFixed(1);
+                    const hum = parseFloat(data.humidity || 0).toFixed(1);
+                    const wind = parseFloat(data.wind_speed || 0).toFixed(2);
+
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('th-TH');
+
+                    // Update UI Cards
+                    document.getElementById('tempVal').innerText = temp;
+                    document.getElementById('humVal').innerText = hum;
+                    document.getElementById('windVal').innerText = wind;
+
+                    document.getElementById('tempTime').innerText = timeStr;
+                    document.getElementById('humTime').innerText = timeStr;
+                    document.getElementById('windTime').innerText = timeStr;
+
+                    // Update Status Badge
+                    const badge = document.getElementById('statusBadge');
+                    badge.innerText = "• Online";
+                    badge.className = "badge-status online";
+
+                    // Push to Chart
+                    if (sensorChart) {
+                        if (sensorChart.data.labels.length > 25) {
+                            sensorChart.data.labels.shift();
+                            sensorChart.data.datasets[0].data.shift();
+                            sensorChart.data.datasets[1].data.shift();
+                            sensorChart.data.datasets[2].data.shift();
+                        }
+                        sensorChart.data.labels.push(timeStr);
+                        sensorChart.data.datasets[0].data.push(temp);
+                        sensorChart.data.datasets[1].data.push(hum);
+                        sensorChart.data.datasets[2].data.push(wind);
+                        sensorChart.update();
+                    }
+                }
+            }, (error) => {
+                const badge = document.getElementById('statusBadge');
+                badge.innerText = "• Offline";
+                badge.className = "badge-status offline";
+            });
+        }
+
+        // --- 5. UI CONTROLS & PDF EXPORT ---
+        function setFilter(element) {
+            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('pdfReportArea');
+            const opt = {
+                margin:       0.5,
+                filename:     'betagro_sensor_report.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>

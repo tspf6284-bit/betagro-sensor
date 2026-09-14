@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- html2pdf.js สำหรับส่งออก PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Firebase SDK (v8.10.1) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -24,6 +22,7 @@
             background-color: #f1f5f9;
             color: #334155;
             min-height: 100vh;
+            padding: 15px;
         }
 
         /* ---------------- Login Section ---------------- */
@@ -31,7 +30,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: 90vh;
             padding: 20px;
         }
         .login-card {
@@ -124,9 +123,8 @@
         /* ---------------- Dashboard Section ---------------- */
         .dashboard-container {
             display: none;
-            max-width: 1200px;
+            max-width: 1140px;
             margin: 0 auto;
-            padding: 20px;
         }
         
         /* Navbar */
@@ -179,9 +177,14 @@
         /* Cards Row */
         .card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
         }
         .sensor-card {
             background: #ffffff;
@@ -199,13 +202,13 @@
             color: #64748b;
             font-weight: 700;
             letter-spacing: 0.5px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         .sensor-card .val {
             font-size: 32px;
             font-weight: 800;
             color: #0f172a;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .sensor-card .sub-text {
             font-size: 12px;
@@ -270,20 +273,12 @@
             outline: none;
             color: #334155;
         }
-        .btn-pdf {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        
+        .chart-container-box {
+            position: relative;
+            width: 100%;
+            height: 380px;
         }
-        .btn-pdf:hover { background: #dc2626; }
     </style>
 </head>
 <body>
@@ -353,7 +348,7 @@
         </div>
 
         <!-- Chart Section -->
-        <div class="chart-card" id="pdfReportArea">
+        <div class="chart-card">
             <div class="chart-header">
                 <div class="chart-title">
                     <span>📈</span> กราฟแสดงผล Real-time & ย้อนหลัง
@@ -365,14 +360,11 @@
                         <button class="btn-filter" onclick="setFilter(this)">1 เดือน</button>
                     </div>
                     <input type="date" class="date-picker" id="datePicker">
-                    <button class="btn-pdf" onclick="exportPDF()">
-                        <i class="fa-solid fa-file-pdf"></i> บันทึกเป็น PDF
-                    </button>
                 </div>
             </div>
 
-            <div>
-                <canvas id="realtimeChart" height="110"></canvas>
+            <div class="chart-container-box">
+                <canvas id="realtimeChart"></canvas>
             </div>
         </div>
 
@@ -392,8 +384,7 @@
             const user = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
 
-            // กำหนด Username: admin / Password: 123456
-            if (user === 'admin' && pass === '123456') {
+            if (user === 'admin' && (pass === '123456' || pass === 'password')) {
                 document.getElementById('loggedInUser').innerText = user;
                 document.getElementById('loginWrapper').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
@@ -412,12 +403,13 @@
             document.getElementById('loginError').style.display = 'none';
         }
 
-        // Setting default date to current date
+        // Default Date
         document.getElementById('datePicker').valueAsDate = new Date();
 
         // --- 3. CHART.JS INITIALIZATION ---
         let sensorChart;
         function initChart() {
+            if (sensorChart) sensorChart.destroy();
             const ctx = document.getElementById('realtimeChart').getContext('2d');
             sensorChart = new Chart(ctx, {
                 type: 'line',
@@ -452,6 +444,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             grid: { color: '#f1f5f9' },
@@ -502,14 +495,14 @@
                     document.getElementById('humTime').innerText = timeStr;
                     document.getElementById('windTime').innerText = timeStr;
 
-                    // Update Status Badge
+                    // Update Status
                     const badge = document.getElementById('statusBadge');
                     badge.innerText = "• Online";
                     badge.className = "badge-status online";
 
-                    // Push to Chart
+                    // Update Chart
                     if (sensorChart) {
-                        if (sensorChart.data.labels.length > 25) {
+                        if (sensorChart.data.labels.length > 20) {
                             sensorChart.data.labels.shift();
                             sensorChart.data.datasets[0].data.shift();
                             sensorChart.data.datasets[1].data.shift();
@@ -529,22 +522,10 @@
             });
         }
 
-        // --- 5. UI CONTROLS & PDF EXPORT ---
+        // --- 5. FILTERS ---
         function setFilter(element) {
             document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
-        }
-
-        function exportPDF() {
-            const element = document.getElementById('pdfReportArea');
-            const opt = {
-                margin:       0.5,
-                filename:     'betagro_sensor_report.pdf',
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-            };
-            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>

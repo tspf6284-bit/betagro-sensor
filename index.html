@@ -1,532 +1,430 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>betagro_sensor Dashboard</title>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase SDK (v8.10.1) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background-color: #f1f5f9;
-            color: #334155;
-            min-height: 100vh;
-            padding: 15px;
-        }
-
-        /* ---------------- Login Section ---------------- */
-        .login-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 90vh;
-            padding: 20px;
-        }
-        .login-card {
-            background: #ffffff;
-            width: 100%;
-            max-width: 400px;
-            padding: 40px 30px;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-            text-align: center;
-        }
-        .login-icon {
-            width: 80px;
-            height: 80px;
-            background: #fef9c3;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 40px;
-        }
-        .login-card h2 {
-            font-size: 26px;
-            color: #1e293b;
-            font-weight: 800;
-            margin-bottom: 6px;
-        }
-        .login-card p {
-            color: #64748b;
-            font-size: 14px;
-            margin-bottom: 25px;
-        }
-        .form-group {
-            text-align: left;
-            margin-bottom: 18px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 700;
-            color: #334155;
-            margin-bottom: 8px;
-        }
-        .input-box {
-            position: relative;
-        }
-        .input-box i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-        }
-        .input-box input {
-            width: 100%;
-            padding: 12px 14px 12px 42px;
-            border: 1px solid #cbd5e1;
-            border-radius: 10px;
-            font-size: 14px;
-            outline: none;
-            transition: border 0.2s;
-        }
-        .input-box input:focus {
-            border-color: #3b82f6;
-        }
-        .btn-login {
-            width: 100%;
-            background: #1e293b;
-            color: #ffffff;
-            border: none;
-            padding: 14px;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background 0.2s;
-        }
-        .btn-login:hover {
-            background: #0f172a;
-        }
-        .login-error {
-            color: #ef4444;
-            font-size: 13px;
-            margin-top: 12px;
-            display: none;
-        }
-
-        /* ---------------- Dashboard Section ---------------- */
-        .dashboard-container {
-            display: none;
-            max-width: 1140px;
-            margin: 0 auto;
-        }
-        
-        /* Navbar */
-        .navbar {
-            background: #ffffff;
-            padding: 15px 25px;
-            border-radius: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
-            margin-bottom: 20px;
-        }
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 22px;
-            font-weight: 800;
-            color: #1e293b;
-        }
-        .nav-user {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 14px;
-            color: #475569;
-        }
-        .badge-status {
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-        .badge-status.online { background: #dcfce7; color: #15803d; }
-        .badge-status.offline { background: #fee2e2; color: #b91c1c; }
-        
-        .btn-logout {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-logout:hover { background: #dc2626; }
-
-        /* Cards Row */
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        @media (max-width: 768px) {
-            .card-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-        .sensor-card {
-            background: #ffffff;
-            padding: 20px 24px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
-            border-top: 5px solid #cbd5e1;
-        }
-        .sensor-card.temp { border-top-color: #ef4444; }
-        .sensor-card.hum { border-top-color: #3b82f6; }
-        .sensor-card.wind { border-top-color: #22c55e; }
-
-        .sensor-card h3 {
-            font-size: 13px;
-            color: #64748b;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-        .sensor-card .val {
-            font-size: 32px;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-        .sensor-card .sub-text {
-            font-size: 12px;
-            color: #94a3b8;
-        }
-
-        /* Chart Panel */
-        .chart-card {
-            background: #ffffff;
-            padding: 24px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
-        }
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .chart-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 18px;
-            font-weight: 800;
-            color: #1e293b;
-        }
-        .chart-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .btn-group {
-            background: #f1f5f9;
-            padding: 3px;
-            border-radius: 8px;
-            display: flex;
-        }
-        .btn-filter {
-            background: transparent;
-            border: none;
-            padding: 6px 14px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #64748b;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .btn-filter.active {
-            background: #ffffff;
-            color: #0f172a;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .date-picker {
-            padding: 6px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-            color: #334155;
-        }
-        
-        .chart-container-box {
-            position: relative;
-            width: 100%;
-            height: 380px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>betagro_sensor - Dashboard</title>
+  <!-- Tailwind CSS & FontAwesome Icons & Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      background-color: #edf2f7; 
+    }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-center items-center">
 
-    <!-- 1. LOGIN PAGE -->
-    <div class="login-wrapper" id="loginWrapper">
-        <div class="login-card">
-            <div class="login-icon">⛅</div>
-            <h2>betagro_sensor</h2>
-            <p>เข้าสู่ระบบเพื่อดูแดชบอร์ดข้อมูล Real-time</p>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>ชื่อผู้ใช้งาน (Username)</label>
-                    <div class="input-box">
-                        <i class="fa-solid fa-user"></i>
-                        <input type="text" id="username" placeholder="กรอกชื่อผู้ใช้งาน" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>รหัสผ่าน (Password)</label>
-                    <div class="input-box">
-                        <i class="fa-solid fa-lock"></i>
-                        <input type="password" id="password" placeholder="••••••••" required>
-                    </div>
-                </div>
-                <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
-                <div class="login-error" id="loginError">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!</div>
-            </form>
+  <!-- ==================== 1. LOGIN VIEW ==================== -->
+  <div id="login-view" class="w-full max-w-sm p-4">
+    <div class="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 text-center">
+      <div class="w-20 h-20 bg-amber-100/70 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+        🌤️
+      </div>
+      <h1 class="text-2xl font-black text-slate-800 tracking-tight mb-1">betagro_sensor</h1>
+      <p class="text-xs text-gray-400 font-medium mb-6">เข้าสู่ระบบเพื่อดูแดชบอร์ดข้อมูล Real-time</p>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" class="text-left space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">ชื่อผู้ใช้งาน (Username)</label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="text" id="username" required placeholder="กรอกชื่อผู้ใช้งาน" class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-700 text-slate-700 bg-slate-50/50">
+          </div>
         </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">รหัสผ่าน (Password)</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="password" id="password" required placeholder="••••••••" class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-700 text-slate-700 bg-slate-50/50">
+          </div>
+        </div>
+
+        <div id="login-error" class="text-xs text-red-500 font-medium text-center hidden">
+          ⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!
+        </div>
+
+        <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md active:scale-95 mt-2">
+          เข้าสู่ระบบ
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ==================== 2. MAIN APP CONTAINER ==================== -->
+  <div id="app-view" class="w-full min-h-screen hidden">
+    
+    <!-- ---------------- PAGE A: OVERVIEW LIST ---------------- -->
+    <div id="main-view" class="max-w-2xl mx-auto p-4 md:p-6 pb-24">
+      <div class="flex justify-between items-center mb-4 relative">
+        <div class="flex items-center gap-2 mx-auto">
+          <span class="text-2xl">🌤️</span>
+          <h1 class="text-xl font-black text-slate-800 tracking-tight">betagro_sensor</h1>
+        </div>
+        <button onclick="handleLogout()" title="ออกจากระบบ" class="text-gray-500 hover:text-red-500 text-base absolute right-0">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+
+      <div class="relative mb-5">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400"></i>
+        <input type="text" placeholder="Search Device..." class="w-full pl-11 pr-4 py-2.5 bg-gray-200/70 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-700">
+      </div>
+
+      <div class="grid grid-cols-4 gap-2.5 mb-6">
+        <div class="bg-blue-50/80 border-2 border-blue-400/80 rounded-2xl p-3 text-center shadow-sm">
+          <div id="summary-total" class="text-2xl font-bold text-blue-500">1</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Total</div>
+        </div>
+        <div class="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
+          <div id="summary-online" class="text-2xl font-bold text-green-500">0</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Online</div>
+        </div>
+        <div class="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
+          <div id="summary-offline" class="text-2xl font-bold text-red-500">0</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Offline</div>
+        </div>
+        <div class="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
+          <div id="summary-alarm" class="text-2xl font-bold text-amber-500">0</div>
+          <div class="text-[11px] text-gray-400 mt-0.5">Alarm</div>
+        </div>
+      </div>
+
+      <h2 class="text-base font-bold text-gray-800 mb-3">Device List</h2>
+      <div id="device-list" class="space-y-3.5">
+        <div class="text-center py-8 text-gray-400 text-sm">กำลังเชื่อมต่อข้อมูลจาก Firebase...</div>
+      </div>
     </div>
 
-    <!-- 2. DASHBOARD PAGE -->
-    <div class="dashboard-container" id="dashboardContainer">
+
+    <!-- ---------------- PAGE B: DETAIL MONITOR ---------------- -->
+    <div id="detail-view" class="max-w-6xl mx-auto p-4 md:p-6 hidden">
+      <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-wrap justify-between items-center mb-6 gap-3 border border-gray-100">
+        <div class="flex items-center gap-3">
+          <button onclick="closeDetail()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all">
+            <i class="fa-solid fa-arrow-left mr-1"></i> กลับหน้าหลัก
+          </button>
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🌤️</span>
+            <h1 class="text-xl font-black text-slate-800">betagro_sensor</h1>
+          </div>
+        </div>
         
-        <!-- Navbar -->
-        <div class="navbar">
-            <div class="nav-brand">
-                <span>⛅</span> betagro_sensor
-            </div>
-            <div class="nav-user">
-                <span>ผู้ใช้: <strong id="loggedInUser">admin</strong></span>
-                <span class="badge-status offline" id="statusBadge">• Offline</span>
-                <button class="btn-logout" onclick="logout()">ออกจากระบบ</button>
-            </div>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-slate-600 font-medium">ผู้ใช้: <strong class="text-slate-800">admin</strong></span>
+          <span id="detail-top-status" class="bg-emerald-50 text-emerald-600 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full font-bold">
+            • Online
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-5 rounded-2xl border-2 border-red-500/80 shadow-sm relative">
+          <div class="text-xs font-bold text-slate-600 mb-2">อุณหภูมิ (TEMPERATURE)</div>
+          <div class="text-3xl font-black text-slate-800 mb-2">
+            <span id="detail-card-temp">--.-</span> <span class="text-xl font-bold">°C</span>
+          </div>
+          <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-temp">--:--:--</span></div>
         </div>
 
-        <!-- Sensor Value Cards -->
-        <div class="card-grid">
-            <div class="sensor-card temp">
-                <h3>อุณหภูมิ (TEMPERATURE)</h3>
-                <div class="val"><span id="tempVal">--.-</span> °C</div>
-                <div class="sub-text">อัปเดตล่าสุด: <span id="tempTime">--:--:--</span></div>
-            </div>
-
-            <div class="sensor-card hum">
-                <h3>ความชื้น (HUMIDITY)</h3>
-                <div class="val"><span id="humVal">--.-</span> %</div>
-                <div class="sub-text">อัปเดตล่าสุด: <span id="humTime">--:--:--</span></div>
-            </div>
-
-            <div class="sensor-card wind">
-                <h3>ความเร็วลม (WIND SPEED)</h3>
-                <div class="val"><span id="windVal">-.--</span> m/s</div>
-                <div class="sub-text">อัปเดตล่าสุด: <span id="windTime">--:--:--</span></div>
-            </div>
+        <div class="bg-white p-5 rounded-2xl border-2 border-blue-500/80 shadow-sm relative">
+          <div class="text-xs font-bold text-slate-600 mb-2">ความชื้น (HUMIDITY)</div>
+          <div class="text-3xl font-black text-slate-800 mb-2">
+            <span id="detail-card-hum">--.-</span> <span class="text-xl font-bold">%</span>
+          </div>
+          <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-hum">--:--:--</span></div>
         </div>
 
-        <!-- Chart Section -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <div class="chart-title">
-                    <span>📈</span> กราฟแสดงผล Real-time & ย้อนหลัง
-                </div>
-                <div class="chart-controls">
-                    <div class="btn-group">
-                        <button class="btn-filter active" onclick="setFilter(this)">1 วัน</button>
-                        <button class="btn-filter" onclick="setFilter(this)">1 Week</button>
-                        <button class="btn-filter" onclick="setFilter(this)">1 เดือน</button>
-                    </div>
-                    <input type="date" class="date-picker" id="datePicker">
-                </div>
-            </div>
+        <div class="bg-white p-5 rounded-2xl border-2 border-emerald-500/80 shadow-sm relative">
+          <div class="text-xs font-bold text-slate-600 mb-2">ความเร็วลม (WIND SPEED)</div>
+          <div class="text-3xl font-black text-slate-800 mb-2">
+            <span id="detail-card-wind">--.-</span> <span class="text-xl font-bold">m/s</span>
+          </div>
+          <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-wind">--:--:--</span></div>
+        </div>
+      </div>
 
-            <div class="chart-container-box">
-                <canvas id="realtimeChart"></canvas>
-            </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div class="flex items-center gap-2 mb-6">
+          <span class="text-lg">📈</span>
+          <h2 class="text-base font-bold text-slate-800">กราฟแสดงผล Real-time</h2>
         </div>
 
+        <div class="relative w-full h-[360px]">
+          <canvas id="realtimeChart"></canvas>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // --- 1. FIREBASE CONFIG ---
-        const firebaseConfig = {
-            databaseURL: "https://betagro-sensor-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+  <!-- ==================== 3. JAVASCRIPT & FIREBASE LOGIC ==================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue, query, orderByChild, endAt, get, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // --- 2. AUTHENTICATION LOGIC ---
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
+    const firebaseConfig = {
+      databaseURL: "https://betagro-sensor-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
 
-            if (user === 'admin' && (pass === '123456' || pass === 'password')) {
-                document.getElementById('loggedInUser').innerText = user;
-                document.getElementById('loginWrapper').style.display = 'none';
-                document.getElementById('dashboardContainer').style.display = 'block';
-                initChart();
-                startFirebaseRealtime();
-            } else {
-                document.getElementById('loginError').style.display = 'block';
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let chartInstance = null;
+    let currentChartDay = new Date().getDate();
+
+    const hours24 = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+
+    if (sessionStorage.getItem("isLoggedIn") === "true") {
+      showDashboard();
+    }
+
+    window.handleLogin = function(e) {
+      e.preventDefault();
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+      const errorMsg = document.getElementById("login-error");
+
+      if (user === "admin" && pass === "123456") {
+        sessionStorage.setItem("isLoggedIn", "true");
+        errorMsg.classList.add("hidden");
+        showDashboard();
+      } else {
+        errorMsg.classList.remove("hidden");
+      }
+    };
+
+    window.handleLogout = function() {
+      sessionStorage.removeItem("isLoggedIn");
+      document.getElementById("app-view").classList.add("hidden");
+      document.getElementById("login-view").classList.remove("hidden");
+      document.body.className = "min-h-screen flex flex-col justify-center items-center";
+    };
+
+    function showDashboard() {
+      document.getElementById("login-view").classList.add("hidden");
+      document.getElementById("app-view").classList.remove("hidden");
+      document.body.className = "p-0 bg-slate-100 min-h-screen";
+
+      initChart();
+      cleanOldHistory();
+
+      const weatherRef = ref(db, '/weather_data');
+      onValue(weatherRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          renderDashboard(data);
+          updateChart(data);
+        }
+      });
+    }
+
+    // 🧹 ปรับแก้ให้ลบข้อมูลประวัติที่เก่ากว่า 24 ชั่วโมง (1 วัน) ออกจาก Firebase อัตโนมัติ
+    async function cleanOldHistory() {
+      const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
+      const cutoffTime = Date.now() - twentyFourHoursInMs; // เวลาปัจจุบัน - 24 ชั่วโมง
+
+      const historyRef = ref(db, '/weather_history');
+      const oldDataQuery = query(historyRef, orderByChild('timestamp'), endAt(cutoffTime));
+
+      try {
+        const snapshot = await get(oldDataQuery);
+        if (snapshot.exists()) {
+          await remove(oldDataQuery);
+          console.log("🧹 [FIREBASE] ลบข้อมูลประวัติที่เก่ากว่า 24 ชั่วโมงเรียบร้อยแล้ว");
+        }
+      } catch (error) {
+        console.warn("[FIREBASE] การลบขัดข้อง:", error);
+      }
+    }
+
+    function renderDashboard(data) {
+      const deviceList = document.getElementById('device-list');
+      const isOnline = data.status === "ONLINE";
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+
+      document.getElementById('summary-total').innerText = "1";
+      document.getElementById('summary-online').innerText = isOnline ? "1" : "0";
+      document.getElementById('summary-offline').innerText = !isOnline ? "1" : "0";
+      document.getElementById('summary-alarm').innerText = (data.temperature > 34.0 || data.wind_speed <= 0) ? "1" : "0";
+
+      const statusBadge = isOnline 
+        ? `<span class="text-xs font-medium text-green-500 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-green-500"></span>Online</span>`
+        : `<span class="text-xs font-medium text-red-500 flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-500"></span>Offline</span>`;
+
+      const tempValue = isOnline ? data.temperature.toFixed(1) : "---";
+      const humValue  = isOnline ? data.humidity.toFixed(1) : "---";
+      const windValue = isOnline ? data.wind_speed.toFixed(2) : "---";
+
+      deviceList.innerHTML = `
+        <div onclick="openDetail()" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:border-slate-300 transition-all">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-bold text-gray-800 text-sm">TSPF3-1 (ตู้ที่ ${data.board_id || 1})</span>
+            ${statusBadge}
+          </div>
+          
+          <div class="grid grid-cols-3 gap-2 py-3 border-y border-gray-100 my-1 text-center">
+            <div class="text-left">
+              <div class="text-[11px] text-gray-400 mb-1">อุณหภูมิ</div>
+              <div class="text-lg md:text-xl font-extrabold text-gray-800">
+                ${tempValue} <span class="text-xs font-semibold text-gray-500">°C</span>
+              </div>
+            </div>
+
+            <div class="border-l border-gray-100 pl-2 text-left">
+              <div class="text-[11px] text-gray-400 mb-1">ความชื้น</div>
+              <div class="text-lg md:text-xl font-extrabold text-gray-800">
+                ${humValue} <span class="text-xs font-semibold text-gray-500">%</span>
+              </div>
+            </div>
+
+            <div class="border-l border-gray-100 pl-2 text-left">
+              <div class="text-[11px] text-gray-400 mb-1">ความเร็วลม</div>
+              <div class="text-lg md:text-xl font-extrabold text-gray-800">
+                ${windValue} <span class="text-xs font-semibold text-gray-500">m/s</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end items-center gap-1 text-[11px] pt-1 text-green-600">
+            <span>Updated ${timeStr}</span>
+            <i class="fa-solid fa-gear text-gray-300 ml-1"></i>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('detail-card-temp').innerText = tempValue;
+      document.getElementById('detail-card-hum').innerText  = humValue;
+      document.getElementById('detail-card-wind').innerText = windValue;
+
+      document.getElementById('time-temp').innerText = timeStr;
+      document.getElementById('time-hum').innerText  = timeStr;
+      document.getElementById('time-wind').innerText = timeStr;
+
+      document.getElementById('detail-top-status').className = isOnline 
+        ? "bg-emerald-50 text-emerald-600 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full font-bold"
+        : "bg-red-50 text-red-600 border border-red-200 text-xs px-2.5 py-0.5 rounded-full font-bold";
+      document.getElementById('detail-top-status').innerText = isOnline ? "• Online" : "• Offline";
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('realtimeChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hours24,
+          datasets: [
+            {
+              label: 'อุณหภูมิ (°C)',
+              data: new Array(24).fill(null),
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              spanGaps: true,
+              cubicInterpolationMode: 'monotone',
+              yAxisID: 'y'
+            },
+            {
+              label: 'ความชื้น (%)',
+              data: new Array(24).fill(null),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              spanGaps: true,
+              cubicInterpolationMode: 'monotone',
+              yAxisID: 'y'
+            },
+            {
+              label: 'ความเร็วลม (m/s)',
+              data: new Array(24).fill(null),
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              spanGaps: true,
+              cubicInterpolationMode: 'monotone',
+              yAxisID: 'y1'
             }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 800,
+            easing: 'easeOutQuart'
+          },
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 10 } },
+              title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 11 } }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { size: 11 } }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 2.0,
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'ความเร็วลม (m/s)', font: { size: 11 } }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function updateChart(data) {
+      if (!chartInstance) return;
+
+      const now = new Date();
+      const today = now.getDate();
+
+      if (today !== currentChartDay) {
+        currentChartDay = today;
+        chartInstance.data.datasets.forEach(dataset => {
+          dataset.data = new Array(24).fill(null);
         });
+      }
 
-        function logout() {
-            document.getElementById('dashboardContainer').style.display = 'none';
-            document.getElementById('loginWrapper').style.display = 'flex';
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            document.getElementById('loginError').style.display = 'none';
-        }
+      const currentHour = now.getHours();
+      chartInstance.data.datasets[0].data[currentHour] = data.temperature;
+      chartInstance.data.datasets[1].data[currentHour] = data.humidity;
+      chartInstance.data.datasets[2].data[currentHour] = data.wind_speed;
 
-        // Default Date
-        document.getElementById('datePicker').valueAsDate = new Date();
+      chartInstance.update();
+    }
 
-        // --- 3. CHART.JS INITIALIZATION ---
-        let sensorChart;
-        function initChart() {
-            if (sensorChart) sensorChart.destroy();
-            const ctx = document.getElementById('realtimeChart').getContext('2d');
-            sensorChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        {
-                            label: 'อุณหภูมิ (°C)',
-                            borderColor: '#ef4444',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            data: [],
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'ความชื้น (%)',
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            data: [],
-                            yAxisID: 'y'
-                        },
-                        {
-                            label: 'ความเร็วลม (m/s)',
-                            borderColor: '#22c55e',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            data: [],
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: { color: '#f1f5f9' },
-                            title: { display: true, text: 'เวลา (HH:mm:ss)', font: { weight: 'bold' } }
-                        },
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            min: 0,
-                            max: 100,
-                            title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { weight: 'bold' } }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            min: 0,
-                            max: 2.0,
-                            grid: { drawOnChartArea: false },
-                            title: { display: true, text: 'ความเร็วลม (m/s)', font: { weight: 'bold' } }
-                        }
-                    }
-                }
-            });
-        }
+    window.openDetail = function() {
+      document.getElementById('main-view').classList.add('hidden');
+      document.getElementById('detail-view').classList.remove('hidden');
+    };
 
-        // --- 4. FIREBASE REAL-TIME DATA LISTENER ---
-        function startFirebaseRealtime() {
-            const weatherRef = database.ref('weather_data');
-
-            weatherRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    const temp = parseFloat(data.temperature || 0).toFixed(1);
-                    const hum = parseFloat(data.humidity || 0).toFixed(1);
-                    const wind = parseFloat(data.wind_speed || 0).toFixed(2);
-
-                    const now = new Date();
-                    const timeStr = now.toLocaleTimeString('th-TH');
-
-                    // Update UI Cards
-                    document.getElementById('tempVal').innerText = temp;
-                    document.getElementById('humVal').innerText = hum;
-                    document.getElementById('windVal').innerText = wind;
-
-                    document.getElementById('tempTime').innerText = timeStr;
-                    document.getElementById('humTime').innerText = timeStr;
-                    document.getElementById('windTime').innerText = timeStr;
-
-                    // Update Status
-                    const badge = document.getElementById('statusBadge');
-                    badge.innerText = "• Online";
-                    badge.className = "badge-status online";
-
-                    // Update Chart
-                    if (sensorChart) {
-                        if (sensorChart.data.labels.length > 20) {
-                            sensorChart.data.labels.shift();
-                            sensorChart.data.datasets[0].data.shift();
-                            sensorChart.data.datasets[1].data.shift();
-                            sensorChart.data.datasets[2].data.shift();
-                        }
-                        sensorChart.data.labels.push(timeStr);
-                        sensorChart.data.datasets[0].data.push(temp);
-                        sensorChart.data.datasets[1].data.push(hum);
-                        sensorChart.data.datasets[2].data.push(wind);
-                        sensorChart.update();
-                    }
-                }
-            }, (error) => {
-                const badge = document.getElementById('statusBadge');
-                badge.innerText = "• Offline";
-                badge.className = "badge-status offline";
-            });
-        }
-
-        // --- 5. FILTERS ---
-        function setFilter(element) {
-            document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
-            element.classList.add('active');
-        }
-    </script>
+    window.closeDetail = function() {
+      document.getElementById('detail-view').classList.add('hidden');
+      document.getElementById('main-view').classList.remove('hidden');
+    };
+  </script>
 </body>
 </html>

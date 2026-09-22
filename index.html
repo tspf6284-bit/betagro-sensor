@@ -259,7 +259,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: false, // ปิด Animation เพื่อความลื่นไหล ไม่กระตุก
+          animation: false,
           interaction: { mode: 'index', intersect: false },
           scales: {
             x: {
@@ -296,7 +296,6 @@
       const rootRef = ref(db, '/');
       const historyRef = ref(db, '/history');
 
-      // 1. รับค่า Real-time มาแสดงผลตัวเลขแบบเบาสบาย ไม่หน่วง
       onValue(rootRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -304,31 +303,42 @@
         }
       });
 
-      // 2. ดึงประวัติจากกิ่ง /history มาแสดงบนกราฟ
+      // ปรับปรุงระบบดึงข้อมูลประวัติให้รองรับคีย์ทุกรูปแบบที่เป็นไปได้
       onValue(historyRef, (snapshot) => {
         const historyData = snapshot.val();
         if (!historyData || !chartInstance) return;
 
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
-        const todayData = historyData[todayStr] || {};
+        let todayData = historyData[todayStr] || historyData;
 
         let tempArr = new Array(24).fill(null);
         let humArr = new Array(24).fill(null);
         let windArr = new Array(24).fill(null);
 
         for (let h = 0; h < 24; h++) {
-          if (todayData[h]) {
-            tempArr[h] = todayData[h].temperature;
-            humArr[h] = todayData[h].humidity;
-            windArr[h] = todayData[h].wind_speed;
+          const hStr = String(h);
+          const hPad = String(h).padStart(2, '0');
+          const hTime = `${hPad}:00`;
+
+          // ค้นหาข้อมูลจากหลายๆ รูปแบบคีย์ที่บอร์ดอาจจะส่งขึ้นไป
+          const hourRecord = todayData[h] || 
+                             todayData[hStr] || 
+                             todayData[hPad] || 
+                             todayData[hTime] || 
+                             todayData[`h${h}`];
+          
+          if (hourRecord) {
+            tempArr[h] = hourRecord.temperature !== undefined ? hourRecord.temperature : hourRecord.temp;
+            humArr[h] = hourRecord.humidity !== undefined ? hourRecord.humidity : hourRecord.hum;
+            windArr[h] = hourRecord.wind_speed !== undefined ? hourRecord.wind_speed : hourRecord.wind;
           }
         }
 
         chartInstance.data.datasets[0].data = tempArr;
         chartInstance.data.datasets[1].data = humArr;
         chartInstance.data.datasets[2].data = windArr;
-        chartInstance.update('none'); // อัปเดตกราฟแบบไม่ใช้แอนิเมชันเพื่อให้แสดงผลไวที่สุด
+        chartInstance.update('none');
       });
     }
 

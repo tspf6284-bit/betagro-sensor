@@ -174,11 +174,9 @@
     const db = getDatabase(app);
 
     let chartInstance = null;
-    let currentChartDay = new Date().getDate();
-
     const hours24 = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
 
-    if (sessionStorage.getItem("isLoggedIn") === "true") {
+    if (localStorage.getItem("isLoggedIn") === "true") {
       showDashboard();
     }
 
@@ -189,7 +187,7 @@
       const errorMsg = document.getElementById("login-error");
 
       if (user === "admin" && pass === "123456") {
-        sessionStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("isLoggedIn", "true");
         errorMsg.classList.add("hidden");
         showDashboard();
       } else {
@@ -198,7 +196,7 @@
     };
 
     window.handleLogout = function() {
-      sessionStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("isLoggedIn");
       document.getElementById("app-view").classList.add("hidden");
       document.getElementById("login-view").classList.remove("hidden");
       document.body.className = "min-h-screen flex flex-col justify-center items-center";
@@ -210,15 +208,127 @@
       document.body.className = "p-0 bg-slate-100 min-h-screen";
 
       initChart();
+      listenFirebaseData();
+    }
 
-      // ดึงข้อมูลจาก Root หลัก (/) โดยตรงตามโครงสร้าง Firebase ปัจจุบันของคุณ
+    function initChart() {
+      const ctx = document.getElementById('realtimeChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: hours24,
+          datasets: [
+            {
+              label: 'อุณหภูมิ (°C)',
+              data: new Array(24).fill(null),
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              spanGaps: true,
+              cubicInterpolationMode: 'monotone',
+              yAxisID: 'y'
+            },
+            {
+              label: 'ความชื้น (%)',
+              data: new Array(24).fill(null),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              spanGaps: true,
+              cubicInterpolationMode: 'monotone',
+              yAxisID: 'y'
+            },
+            {
+              label: 'ความเร็วลม (m/s)',
+              data: new Array(24).fill(null),
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              borderWidth: 2.5,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              spanGaps: true,
+              cubicInterpolationMode: 'monotone',
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false, // ปิด Animation เพื่อความลื่นไหล ไม่กระตุก
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 10 } },
+              title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 11 } }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              min: 0,
+              max: 100,
+              title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { size: 11 } }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 2.0,
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'ความเร็วลม (m/s)', font: { size: 11 } }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function listenFirebaseData() {
       const rootRef = ref(db, '/');
+      const historyRef = ref(db, '/history');
+
+      // 1. รับค่า Real-time มาแสดงผลตัวเลขแบบเบาสบาย ไม่หน่วง
       onValue(rootRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           renderDashboard(data);
-          updateChart(data);
         }
+      });
+
+      // 2. ดึงประวัติจากกิ่ง /history มาแสดงบนกราฟ
+      onValue(historyRef, (snapshot) => {
+        const historyData = snapshot.val();
+        if (!historyData || !chartInstance) return;
+
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const todayData = historyData[todayStr] || {};
+
+        let tempArr = new Array(24).fill(null);
+        let humArr = new Array(24).fill(null);
+        let windArr = new Array(24).fill(null);
+
+        for (let h = 0; h < 24; h++) {
+          if (todayData[h]) {
+            tempArr[h] = todayData[h].temperature;
+            humArr[h] = todayData[h].humidity;
+            windArr[h] = todayData[h].wind_speed;
+          }
+        }
+
+        chartInstance.data.datasets[0].data = tempArr;
+        chartInstance.data.datasets[1].data = humArr;
+        chartInstance.data.datasets[2].data = windArr;
+        chartInstance.update('none'); // อัปเดตกราฟแบบไม่ใช้แอนิเมชันเพื่อให้แสดงผลไวที่สุด
       });
     }
 
@@ -290,113 +400,6 @@
         ? "bg-emerald-50 text-emerald-600 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full font-bold"
         : "bg-red-50 text-red-600 border border-red-200 text-xs px-2.5 py-0.5 rounded-full font-bold";
       document.getElementById('detail-top-status').innerText = isOnline ? "• Online" : "• Offline";
-    }
-
-    function initChart() {
-      const ctx = document.getElementById('realtimeChart').getContext('2d');
-      chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: hours24,
-          datasets: [
-            {
-              label: 'อุณหภูมิ (°C)',
-              data: new Array(24).fill(null),
-              borderColor: '#ef4444',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              borderWidth: 2.5,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              spanGaps: true,
-              cubicInterpolationMode: 'monotone',
-              yAxisID: 'y'
-            },
-            {
-              label: 'ความชื้น (%)',
-              data: new Array(24).fill(null),
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              borderWidth: 2.5,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              spanGaps: true,
-              cubicInterpolationMode: 'monotone',
-              yAxisID: 'y'
-            },
-            {
-              label: 'ความเร็วลม (m/s)',
-              data: new Array(24).fill(null),
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              borderWidth: 2.5,
-              pointRadius: 4,
-              pointHoverRadius: 6,
-              spanGaps: true,
-              cubicInterpolationMode: 'monotone',
-              yAxisID: 'y1'
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: {
-            duration: 800,
-            easing: 'easeOutQuart'
-          },
-          interaction: { mode: 'index', intersect: false },
-          scales: {
-            x: {
-              grid: { color: '#f1f5f9' },
-              ticks: { font: { size: 10 } },
-              title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 11 } }
-            },
-            y: {
-              type: 'linear',
-              display: true,
-              position: 'left',
-              min: 0,
-              max: 100,
-              title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { size: 11 } }
-            },
-            y1: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              min: 0,
-              max: 2.0,
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: 'ความเร็วลม (m/s)', font: { size: 11 } }
-            }
-          },
-          plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
-          }
-        }
-      });
-    }
-
-    function updateChart(data) {
-      if (!chartInstance) return;
-
-      const now = new Date();
-      const today = now.getDate();
-
-      if (today !== currentChartDay) {
-        currentChartDay = today;
-        chartInstance.data.datasets.forEach(dataset => {
-          dataset.data = new Array(24).fill(null);
-        });
-      }
-
-      const currentHour = now.getHours();
-      
-      // บันทึกค่าลงในชั่วโมงปัจจุบันแบบ Real-time
-      if (data.temperature !== undefined) chartInstance.data.datasets[0].data[currentHour] = data.temperature;
-      if (data.humidity !== undefined) chartInstance.data.datasets[1].data[currentHour] = data.humidity;
-      if (data.wind_speed !== undefined) chartInstance.data.datasets[2].data[currentHour] = data.wind_speed;
-
-      chartInstance.update();
     }
 
     window.openDetail = function() {

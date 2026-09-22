@@ -148,10 +148,22 @@
         </div>
       </div>
 
+      <!-- ส่วนกราฟและการเลือกวันที่ย้อนหลัง -->
       <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div class="flex items-center gap-2 mb-6">
-          <span class="text-lg">📈</span>
-          <h2 class="text-base font-bold text-slate-800">กราฟแสดงผล Real-time (24 ชั่วโมง)</h2>
+        <div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📈</span>
+            <h2 class="text-base font-bold text-slate-800">กราฟแสดงผล Real-time & ย้อนหลัง 7 วัน</h2>
+          </div>
+          
+          <!-- ตัวเลือกเลือกวันที่ -->
+          <div class="flex items-center gap-2 text-sm">
+            <label for="historyDatePicker" class="text-slate-600 font-semibold">เลือกวันที่:</label>
+            <input type="date" id="historyDatePicker" class="border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-700">
+            <button onclick="loadHistoryByDate()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm">
+              <i class="fa-solid fa-magnifying-glass mr-1"></i> โหลดข้อมูล
+            </button>
+          </div>
         </div>
 
         <div class="relative w-full h-[360px]">
@@ -164,7 +176,7 @@
   <!-- ==================== 3. JAVASCRIPT & FIREBASE LOGIC ==================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       databaseURL: "https://betagro-sensor-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -175,6 +187,7 @@
 
     let chartInstance = null;
     let latestRealtimeData = null;
+    let isViewingHistory = false;
     const hours24 = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
 
     if (localStorage.getItem("isLoggedIn") === "true") {
@@ -207,6 +220,9 @@
       document.getElementById("login-view").classList.add("hidden");
       document.getElementById("app-view").classList.remove("hidden");
       document.body.className = "p-0 bg-slate-100 min-h-screen";
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      document.getElementById('historyDatePicker').value = todayStr;
 
       initChart();
       listenFirebaseData();
@@ -301,41 +317,84 @@
         if (data) {
           latestRealtimeData = data;
           renderDashboard(data);
-          updateChartData(data);
+          
+          if (!isViewingHistory) {
+            updateChartData(data);
+          }
         }
       });
     }
 
+    window.loadHistoryByDate = async function() {
+      const selectedDate = document.getElementById('historyDatePicker').value;
+      if (!selectedDate) {
+        alert("กรุณาเลือกวันที่ต้องการดูกราฟย้อนหลัง");
+        return;
+      }
+
+      isViewingHistory = true;
+      const historyRef = ref(db, `history/${selectedDate}`);
+
+      try {
+        const snapshot = await get(historyRef);
+        const dayData = snapshot.val();
+
+        let tempArr = new Array(24).fill(null);
+        let humArr = new Array(24).fill(null);
+        let windArr = new Array(24).fill(null);
+
+        if (dayData) {
+          for (let hourKey in dayData) {
+            const hourNum = Number(hourKey);
+            const val = dayData[hourKey];
+            if (!isNaN(hourNum) && hourNum >= 0 && hourNum <= 23 && val) {
+              const t = val.temperature !== undefined ? val.temperature : val.temp;
+              const h = val.humidity !== undefined ? val.humidity : val.hum;
+              const w = val.wind_speed !== undefined ? val.wind_speed : val.wind;
+
+              if (t !== undefined) tempArr[hourNum] = Number(t);
+              if (h !== undefined) humArr[hourNum] = Number(h);
+              if (w !== undefined) windArr[hourNum] = Number(w);
+            }
+          }
+        }
+
+        chartInstance.data.datasets[0].data = tempArr;
+        chartInstance.data.datasets[1].data = humArr;
+        chartInstance.data.datasets[2].data = windArr;
+        chartInstance.update();
+
+      } catch (error) {
+        console.error("Error loading history date:", error);
+        alert("ไม่สามารถดึงข้อมูลของวันที่เลือกได้");
+      }
+    };
+
     function updateChartData(data) {
-      if (!chartInstance) return;
+      if (!chartInstance || isViewingHistory) return;
 
       let tempArr = new Array(24).fill(null);
       let humArr = new Array(24).fill(null);
       let windArr = new Array(24).fill(null);
 
-      // ฟังก์ชันเจาะลึกค้นหาประวัติข้อมูล รองรับโครงสร้าง history -> วันที่ -> ชั่วโมง
-      if (data.history) {
-        for (let dateKey in data.history) {
-          const hoursNode = data.history[dateKey];
-          if (hoursNode && typeof hoursNode === 'object') {
-            for (let hourKey in hoursNode) {
-              const val = hoursNode[hourKey];
-              const hourNum = Number(hourKey);
-              if (!isNaN(hourNum) && hourNum >= 0 && hourNum <= 23 && val && typeof val === 'object') {
-                const t = val.temperature !== undefined ? val.temperature : val.temp;
-                const h = val.humidity !== undefined ? val.humidity : val.hum;
-                const w = val.wind_speed !== undefined ? val.wind_speed : val.wind;
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (data.history && data.history[todayStr]) {
+        const hoursNode = data.history[todayStr];
+        for (let hourKey in hoursNode) {
+          const val = hoursNode[hourKey];
+          const hourNum = Number(hourKey);
+          if (!isNaN(hourNum) && hourNum >= 0 && hourNum <= 23 && val) {
+            const t = val.temperature !== undefined ? val.temperature : val.temp;
+            const h = val.humidity !== undefined ? val.humidity : val.hum;
+            const w = val.wind_speed !== undefined ? val.wind_speed : val.wind;
 
-                if (t !== undefined) tempArr[hourNum] = Number(t);
-                if (h !== undefined) humArr[hourNum] = Number(h);
-                if (w !== undefined) windArr[hourNum] = Number(w);
-              }
-            }
+            if (t !== undefined) tempArr[hourNum] = Number(t);
+            if (h !== undefined) humArr[hourNum] = Number(h);
+            if (w !== undefined) windArr[hourNum] = Number(w);
           }
         }
       }
 
-      // นำค่าปัจจุบัน ณ เวลาปัจจุบันมาลงกราฟเสริมด้วย
       const currentHour = new Date().getHours();
       if (data.temperature !== undefined && tempArr[currentHour] === null) {
         tempArr[currentHour] = Number(data.temperature);
@@ -371,7 +430,7 @@
       deviceList.innerHTML = `
         <div onclick="openDetail()" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:border-slate-300 transition-all">
           <div class="flex justify-between items-center mb-2">
-            <span class="font-bold text-gray-800 text-sm">TSPF3-1 (ตู้ที่ ${data.board_id || 1})</span>
+            <span class="font-bold text-gray-800 text-sm">TSPF3-1 (102)</span>
             ${statusBadge}
           </div>
           
@@ -427,6 +486,8 @@
     window.closeDetail = function() {
       document.getElementById('detail-view').classList.add('hidden');
       document.getElementById('main-view').classList.remove('hidden');
+      isViewingHistory = false;
+      if (latestRealtimeData) updateChartData(latestRealtimeData);
     };
   </script>
 </body>

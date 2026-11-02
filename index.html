@@ -21,16 +21,18 @@
       display: none !important;
     }
 
-    /* 📌 บังคับให้ PDF ขยายเต็มหน้าจอแนวนอน A4 แบบเต็มพื้นที่สวยงาม */
+    /* 📌 บังคับให้ PDF ขยายเต็มหน้าจอแนวนอน A4 แบบเต็มพื้นที่และกระจายกราฟเต็มความกว้าง */
     .rendering-pdf #pdf-container {
       width: 100% !important;
       max-width: none !important;
       background: white !important;
-      padding: 25px !important;
+      padding: 15px !important;
+      margin: 0 !important;
     }
 
     .rendering-pdf .chart-wrapper {
-      height: 360px !important;
+      width: 100% !important;
+      height: 420px !important;
     }
   </style>
 </head>
@@ -275,7 +277,7 @@
       listenFirebaseData();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF (ขยายเต็มหน้า A4 แนวนอน แสดงครบทุกชั่วโมง)
+    // 📌 ฟังก์ชันดาวน์โหลด PDF (ขยายกราฟเต็มหน้า A4 แนวนอน ไม่เบียด)
     window.downloadPDF = function() {
       const container = document.getElementById('pdf-container');
       const selectedDate = document.getElementById('historyDatePicker').value || 'report';

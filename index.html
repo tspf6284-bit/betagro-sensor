@@ -26,19 +26,18 @@
       width: 100% !important;
       max-width: none !important;
       background: white !important;
-      padding: 20px !important;
+      padding: 25px !important;
       margin: 0 !important;
     }
 
-    /* 📌 บังคับตัวห่อหุ้มกราฟและ Canvas ให้ขยายเต็ม 100% ตอนออก PDF */
     .rendering-pdf .chart-wrapper {
       width: 100% !important;
-      height: 400px !important;
+      height: 420px !important;
     }
 
     .rendering-pdf canvas {
       width: 100% !important;
-      height: 400px !important;
+      height: 420px !important;
     }
   </style>
 </head>
@@ -85,7 +84,7 @@
   <!-- ==================== 2. MAIN APP CONTAINER ==================== -->
   <div id="app-view" class="w-full min-h-screen hidden">
     
-    <!-- ---------------- PAGE A: OVERVIEW LIST ---------------- -->
+    <!-- ---------------- PAGE 1: OVERVIEW LIST (หน้าแรก) ---------------- -->
     <div id="main-view" class="max-w-2xl mx-auto p-4 md:p-6 pb-24">
       <div class="flex justify-between items-center mb-4 relative">
         <div class="flex items-center gap-2 mx-auto">
@@ -128,7 +127,7 @@
     </div>
 
 
-    <!-- ---------------- PAGE B: DETAIL MONITOR ---------------- -->
+    <!-- ---------------- PAGE 2: DETAIL & FULL GRAPH (หน้าที่ 2: กราฟเต็มจอ) ---------------- -->
     <div id="detail-view" class="max-w-6xl mx-auto p-3 md:p-6 hidden">
       
       <!-- ส่วนหัวข้อและการควบคุมปกติ -->
@@ -151,8 +150,8 @@
         </div>
       </div>
 
-      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF -->
-      <div id="pdf-container" class="space-y-4 md:space-y-6 bg-white p-3.5 md:p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF / หน้าที่ 2 แสดงกราฟแบบเต็มจอ -->
+      <div id="pdf-container" class="space-y-4 md:space-y-6 bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 relative">
         
         <!-- หัวข้อเอกสารเฉพาะตอนออก PDF -->
         <div class="hidden print-header text-center pb-3 border-b border-gray-200 mb-4">
@@ -161,38 +160,38 @@
         </div>
 
         <!-- 📌 1. การ์ดแสดงค่า 3 ช่อง -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          <div class="bg-white p-3.5 md:p-4 rounded-2xl border-2 border-red-400/80 shadow-sm relative">
-            <div class="text-[11px] md:text-xs font-bold text-slate-600 mb-1">อุณหภูมิ (TEMPERATURE)</div>
-            <div class="text-2xl md:text-3xl font-black text-slate-800 mb-1">
-              <span id="detail-card-temp">--.-</span> <span class="text-lg md:text-xl font-bold">°C</span>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+          <div class="bg-white p-4 rounded-2xl border-2 border-red-400/80 shadow-sm relative">
+            <div class="text-xs font-bold text-slate-600 mb-1">อุณหภูมิ (TEMPERATURE)</div>
+            <div class="text-3xl font-black text-slate-800 mb-1">
+              <span id="detail-card-temp">--.-</span> <span class="text-xl font-bold">°C</span>
             </div>
-            <div class="text-[10px] md:text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-temp">--:--:--</span></div>
+            <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-temp">--:--:--</span></div>
           </div>
 
-          <div class="bg-white p-3.5 md:p-4 rounded-2xl border-2 border-blue-400/80 shadow-sm relative">
-            <div class="text-[11px] md:text-xs font-bold text-slate-600 mb-1">ความชื้น (HUMIDITY)</div>
-            <div class="text-2xl md:text-3xl font-black text-slate-800 mb-1">
-              <span id="detail-card-hum">--.-</span> <span class="text-lg md:text-xl font-bold">%</span>
+          <div class="bg-white p-4 rounded-2xl border-2 border-blue-400/80 shadow-sm relative">
+            <div class="text-xs font-bold text-slate-600 mb-1">ความชื้น (HUMIDITY)</div>
+            <div class="text-3xl font-black text-slate-800 mb-1">
+              <span id="detail-card-hum">--.-</span> <span class="text-xl font-bold">%</span>
             </div>
-            <div class="text-[10px] md:text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-hum">--:--:--</span></div>
+            <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-hum">--:--:--</span></div>
           </div>
 
-          <div class="bg-white p-3.5 md:p-4 rounded-2xl border-2 border-emerald-400/80 shadow-sm relative col-span-2 md:col-span-1">
-            <div class="text-[11px] md:text-xs font-bold text-slate-600 mb-1">ความเร็วลม (WIND SPEED)</div>
-            <div class="text-2xl md:text-3xl font-black text-slate-800 mb-1">
-              <span id="detail-card-wind">--.-</span> <span class="text-lg md:text-xl font-bold">m/s</span>
+          <div class="bg-white p-4 rounded-2xl border-2 border-emerald-400/80 shadow-sm relative">
+            <div class="text-xs font-bold text-slate-600 mb-1">ความเร็วลม (WIND SPEED)</div>
+            <div class="text-3xl font-black text-slate-800 mb-1">
+              <span id="detail-card-wind">--.-</span> <span class="text-xl font-bold">m/s</span>
             </div>
-            <div class="text-[10px] md:text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-wind">--:--:--</span></div>
+            <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-wind">--:--:--</span></div>
           </div>
         </div>
 
-        <!-- 📌 2. ส่วนแสดงกราฟ -->
-        <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-gray-100 shadow-sm">
+        <!-- 📌 2. ส่วนแสดงกราฟเต็มพื้นที่ (Full Width) -->
+        <div class="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
           <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
             <div class="flex items-center gap-2">
               <span class="text-lg">📈</span>
-              <h2 id="chart-title" class="text-sm md:text-base font-bold text-slate-800">กราฟแสดงผล Real-time & ย้อนหลัง</h2>
+              <h2 id="chart-title" class="text-base font-bold text-slate-800">กราฟแสดงผล Real-time & ย้อนหลัง</h2>
             </div>
             
             <div class="flex items-center gap-2 text-xs md:text-sm flex-wrap w-full md:w-auto no-pdf">
@@ -211,8 +210,8 @@
             </div>
           </div>
 
-          <!-- ขนาดกราฟ -->
-          <div class="relative w-full h-[280px] md:h-[340px] chart-wrapper">
+          <!-- ขนาดกราฟขยายเต็มความกว้าง -->
+          <div class="relative w-full h-[350px] md:h-[450px] chart-wrapper">
             <canvas id="realtimeChart"></canvas>
           </div>
         </div>
@@ -283,7 +282,7 @@
       listenFirebaseData();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF (ปรับให้กราฟขยายเต็มความกว้างและแสดงครบทุกชั่วโมง)
+    // 📌 ฟังก์ชันดาวน์โหลด PDF (ขยายเต็มหน้า A4 แนวนอน แผ่กราฟเต็มความกว้าง)
     window.downloadPDF = function() {
       const container = document.getElementById('pdf-container');
       const selectedDate = document.getElementById('historyDatePicker').value || 'report';
@@ -300,7 +299,6 @@
       printHeader.classList.remove('hidden');
       printFooter.classList.remove('hidden');
 
-      // บังคับให้ตอนพิมพ์ PDF แสดงเวลาแกน X ครบถ้วนทุกชั่วโมง และปรับขนาด Chart ให้เต็ม
       if (chartInstance) {
         chartInstance.options.scales.x.ticks.callback = function(val, index) {
           return this.getLabelForValue(val);
@@ -322,7 +320,6 @@
         printHeader.classList.add('hidden');
         printFooter.classList.add('hidden');
 
-        // คืนค่าฟังก์ชันแสดงผลแกน X และขนาดกราฟตามหน้าจอปรกติ
         if (chartInstance) {
           chartInstance.options.scales.x.ticks.callback = function(val, index) {
             const isMobile = window.innerWidth < 768;

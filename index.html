@@ -21,28 +21,28 @@
       display: none !important;
     }
 
-    /* 📌 ซ่อนปุ่มดาวน์โหลด PDF อัตโนมัติเมื่อเปิดผ่านมือถือ */
+    /* 📌 ซ่อนปุ่มดาวน์โหลด PDF เฉพาะบนมือถือ */
     @media (max-width: 768px) {
       .hide-on-mobile {
         display: none !important;
       }
     }
 
-    /* 📌 จัดแต่งพื้นที่ PDF แนวนอนให้เต็มหน้าพอดีและจบในหน้าเดียว */
+    /* 📌 บังคับพื้นที่ PDF ให้พอดีหน้ากระดาษ A4 แนวนอน (ขยายความสูงกราฟให้สมส่วนสวยงาม) */
     .rendering-pdf #pdf-container {
       width: 100% !important;
       background: white !important;
-      padding: 10px 15px !important;
+      padding: 6px 10px !important;
     }
 
     .rendering-pdf .chart-wrapper {
       width: 100% !important;
-      height: 240px !important;
+      height: 250px !important;
     }
 
     .rendering-pdf canvas {
       width: 100% !important;
-      height: 240px !important;
+      height: 250px !important;
     }
   </style>
 </head>
@@ -155,71 +155,77 @@
         </div>
       </div>
 
-      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF (ดีไซน์ดั้งเดิม สะอาดตา ไม่มีสีพื้นหลัง) -->
-      <div id="pdf-container" class="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
+      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF -->
+      <div id="pdf-container" class="space-y-3 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 relative">
         
-        <!-- หัวข้อเอกสารเฉพาะตอนออก PDF (ดีไซน์เดิม) -->
-        <div class="hidden print-header text-center pb-3 border-b border-gray-100">
-          <h1 id="pdf-main-title" class="text-xl font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
-          <p class="text-xs text-gray-500 mt-0.5">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
+        <!-- หัวข้อเอกสารเฉพาะตอนออก PDF -->
+        <div class="hidden print-header text-center pb-2 border-b border-gray-100">
+          <h1 id="pdf-main-title" class="text-lg font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
+          <p class="text-[11px] text-gray-500 mt-0.5">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
         </div>
 
         <!-- การ์ดแสดงค่า 3 ช่องด้านบน -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-white p-4 rounded-2xl border-2 border-red-400/80 shadow-sm relative">
-            <div class="text-xs font-bold text-slate-600 mb-1">อุณหภูมิ (TEMPERATURE)</div>
-            <div class="text-3xl font-black text-slate-800 mb-1">
-              <span id="detail-card-temp">--.-</span> <span class="text-xl font-bold">°C</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-3 col-span-1 md:col-span-2">
+            <div class="bg-white p-3 rounded-xl border-2 border-red-400/80 shadow-sm relative">
+              <div class="text-[11px] font-bold text-slate-600 mb-0.5">อุณหภูมิ (TEMPERATURE)</div>
+              <div class="text-xl md:text-2xl font-black text-slate-800 mb-0.5">
+                <span id="detail-card-temp">--.-</span> <span class="text-base md:text-lg font-bold">°C</span>
+              </div>
+              <div class="text-[10px] text-gray-400">อัปเดตล่าสุด: <span id="time-temp">--:--:--</span></div>
             </div>
-            <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-temp">--:--:--</span></div>
+
+            <div class="bg-white p-3 rounded-xl border-2 border-blue-400/80 shadow-sm relative">
+              <div class="text-[11px] font-bold text-slate-600 mb-0.5">ความชื้น (HUMIDITY)</div>
+              <div class="text-xl md:text-2xl font-black text-slate-800 mb-0.5">
+                <span id="detail-card-hum">--.-</span> <span class="text-base md:text-lg font-bold">%</span>
+              </div>
+              <div class="text-[10px] text-gray-400">อัปเดตล่าสุด: <span id="time-hum">--:--:--</span></div>
+            </div>
           </div>
 
-          <div class="bg-white p-4 rounded-2xl border-2 border-blue-400/80 shadow-sm relative">
-            <div class="text-xs font-bold text-slate-600 mb-1">ความชื้น (HUMIDITY)</div>
-            <div class="text-3xl font-black text-slate-800 mb-1">
-              <span id="detail-card-hum">--.-</span> <span class="text-xl font-bold">%</span>
+          <div class="bg-white p-3 rounded-xl border-2 border-emerald-400/80 shadow-sm relative col-span-1 md:col-span-2">
+            <div class="text-[11px] font-bold text-slate-600 mb-0.5">ความเร็วลม (WIND SPEED)</div>
+            <div class="text-xl md:text-2xl font-black text-slate-800 mb-0.5">
+              <span id="detail-card-wind">--.-</span> <span class="text-base md:text-lg font-bold">m/s</span>
             </div>
-            <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-hum">--:--:--</span></div>
-          </div>
-
-          <div class="bg-white p-4 rounded-2xl border-2 border-emerald-400/80 shadow-sm relative">
-            <div class="text-xs font-bold text-slate-600 mb-1">ความเร็วลม (WIND SPEED)</div>
-            <div class="text-3xl font-black text-slate-800 mb-1">
-              <span id="detail-card-wind">--.-</span> <span class="text-xl font-bold">m/s</span>
-            </div>
-            <div class="text-[11px] text-gray-400">อัปเดตล่าสุด: <span id="time-wind">--:--:--</span></div>
+            <div class="text-[10px] text-gray-400">อัปเดตล่าสุด: <span id="time-wind">--:--:--</span></div>
           </div>
         </div>
 
         <!-- ส่วนแสดงกราฟ และตัวเลือกควบคุม -->
         <div>
-          <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+          <div class="flex flex-wrap justify-between items-center mb-2 gap-3">
             <div class="flex items-center gap-2">
-              <span class="text-lg">📈</span>
-              <h2 id="chart-title" class="text-base font-bold text-slate-800">กราฟแสดงผล Real-time & ย้อนหลัง</h2>
+              <span class="text-base">📈</span>
+              <h2 id="chart-title" class="text-sm md:text-base font-bold text-slate-800">กราฟแสดงผล Real-time & ย้อนหลัง</h2>
             </div>
             
-            <div class="flex items-center gap-2 text-sm flex-wrap no-pdf">
-              <label for="historyDatePicker" class="text-slate-600 font-semibold">เลือกวันที่:</label>
-              <input type="date" id="historyDatePicker" class="border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-700">
-              <button onclick="loadHistoryByDate()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm">
-                <i class="fa-solid fa-magnifying-glass mr-1"></i> ค้นหา
-              </button>
-              <!-- ปุ่มดาวน์โหลด PDF ซ่อนอัตโนมัติบนมือถือด้วยคลาส hide-on-mobile -->
-              <button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 hide-on-mobile">
-                <i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด PDF
-              </button>
+            <div class="flex items-center gap-2 text-xs md:text-sm flex-wrap no-pdf w-full md:w-auto">
+              <div class="w-full md:w-auto">
+                <label for="historyDatePicker" class="block text-[11px] font-semibold text-slate-600 mb-0.5">เลือกวันที่:</label>
+                <input type="date" id="historyDatePicker" class="w-full md:w-auto border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-700">
+              </div>
+              <div class="flex items-center gap-2 w-full md:w-auto mt-1 md:mt-4">
+                <button onclick="loadHistoryByDate()" class="flex-1 md:flex-none bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm text-center">
+                  <i class="fa-solid fa-magnifying-glass mr-1"></i> ค้นหา
+                </button>
+                <!-- 📌 ปุ่มดาวน์โหลด PDF ซ่อนอัตโนมัติบนมือถือด้วยคลาส hide-on-mobile -->
+                <button onclick="downloadPDF()" class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 hide-on-mobile">
+                  <i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด PDF
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- ขนาดกราฟแนวนอนเต็มตา -->
-          <div class="relative w-full h-[260px] md:h-[300px] chart-wrapper">
+          <!-- ขนาดกราฟแนวนอนปรับความสูงสมส่วน 250px -->
+          <div class="relative w-full h-[250px] md:h-[300px] chart-wrapper">
             <canvas id="realtimeChart"></canvas>
           </div>
         </div>
 
         <!-- 📌 ส่วนแสดงวันที่ข้อมูลและวันที่พิมพ์ที่มุมล่างขวา -->
-        <div class="hidden print-footer text-right text-[11px] text-gray-500 pt-2 mt-2 border-t border-gray-100">
+        <div class="hidden print-footer text-right text-[10px] text-gray-500 pt-1 mt-1 border-t border-gray-100">
           <span id="pdf-report-date">วันที่ข้อมูล: --</span> | <span id="pdf-print-date">วันที่พิมพ์: --</span>
         </div>
 
@@ -284,7 +290,7 @@
       listenFirebaseData();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF (ทำงานเฉพาะบนคอมพิวเตอร์/แท็บเล็ต)
+    // 📌 ฟังก์ชันดาวน์โหลด PDF ให้จบในหน้าเดียวเป๊ะ
     window.downloadPDF = function() {
       const container = document.getElementById('pdf-container');
       const selectedDate = document.getElementById('historyDatePicker').value || 'report';
@@ -302,7 +308,7 @@
       printFooter.classList.remove('hidden');
 
       const opt = {
-        margin:       [5, 5, 5, 5],
+        margin:       [4, 4, 4, 4],
         filename:     `TSPF3_1_${selectedRoomId}_${selectedDate}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
@@ -329,7 +335,7 @@
               borderColor: '#ef4444',
               backgroundColor: 'rgba(239, 68, 68, 0.1)',
               borderWidth: 2.5,
-              pointRadius: 3.5,
+              pointRadius: 3,
               pointHoverRadius: 5,
               spanGaps: true,
               cubicInterpolationMode: 'monotone',
@@ -341,7 +347,7 @@
               borderColor: '#3b82f6',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               borderWidth: 2.5,
-              pointRadius: 3.5,
+              pointRadius: 3,
               pointHoverRadius: 5,
               spanGaps: true,
               cubicInterpolationMode: 'monotone',
@@ -353,7 +359,7 @@
               borderColor: '#10b981',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               borderWidth: 2.5,
-              pointRadius: 3.5,
+              pointRadius: 3,
               pointHoverRadius: 5,
               spanGaps: true,
               cubicInterpolationMode: 'monotone',
@@ -374,7 +380,7 @@
                 font: { size: 10 },
                 autoSkip: false
               },
-              title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 11 } }
+              title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 10 } }
             },
             y: {
               type: 'linear',
@@ -382,7 +388,7 @@
               position: 'left',
               min: 0,
               max: 100,
-              title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { size: 11 } }
+              title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { size: 10 } }
             },
             y1: {
               type: 'linear',
@@ -391,11 +397,11 @@
               min: 0,
               max: 3.0,
               grid: { drawOnChartArea: false },
-              title: { display: true, text: 'ความเร็วลม (m/s)', font: { size: 11 } }
+              title: { display: true, text: 'ความเร็วลม (m/s)', font: { size: 10 } }
             }
           },
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
           }
         }
       });

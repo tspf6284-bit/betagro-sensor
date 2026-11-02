@@ -21,18 +21,24 @@
       display: none !important;
     }
 
-    /* 📌 บังคับให้ PDF ขยายเต็มหน้าจอแนวนอน A4 แบบเต็มพื้นที่และกระจายกราฟเต็มความกว้าง */
+    /* 📌 บังคับให้ PDF ขยายเต็มหน้าจอแนวนอน A4 แผ่ความกว้างเต็มที่ */
     .rendering-pdf #pdf-container {
       width: 100% !important;
       max-width: none !important;
       background: white !important;
-      padding: 15px !important;
+      padding: 20px !important;
       margin: 0 !important;
     }
 
+    /* 📌 บังคับตัวห่อหุ้มกราฟและ Canvas ให้ขยายเต็ม 100% ตอนออก PDF */
     .rendering-pdf .chart-wrapper {
       width: 100% !important;
-      height: 420px !important;
+      height: 400px !important;
+    }
+
+    .rendering-pdf canvas {
+      width: 100% !important;
+      height: 400px !important;
     }
   </style>
 </head>
@@ -277,7 +283,7 @@
       listenFirebaseData();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF (ขยายกราฟเต็มหน้า A4 แนวนอน ไม่เบียด)
+    // 📌 ฟังก์ชันดาวน์โหลด PDF (ปรับให้กราฟขยายเต็มความกว้างและแสดงครบทุกชั่วโมง)
     window.downloadPDF = function() {
       const container = document.getElementById('pdf-container');
       const selectedDate = document.getElementById('historyDatePicker').value || 'report';
@@ -294,11 +300,12 @@
       printHeader.classList.remove('hidden');
       printFooter.classList.remove('hidden');
 
-      // บังคับให้ตอนพิมพ์ PDF แสดงเวลาแกน X ครบถ้วนทุกชั่วโมง
+      // บังคับให้ตอนพิมพ์ PDF แสดงเวลาแกน X ครบถ้วนทุกชั่วโมง และปรับขนาด Chart ให้เต็ม
       if (chartInstance) {
         chartInstance.options.scales.x.ticks.callback = function(val, index) {
           return this.getLabelForValue(val);
         };
+        chartInstance.resize();
         chartInstance.update('none');
       }
 
@@ -306,7 +313,7 @@
         margin:       [10, 10, 10, 10],
         filename:     `TSPF3_1_${selectedRoomId}_${selectedDate}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 1200 },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
       };
 
@@ -315,13 +322,14 @@
         printHeader.classList.add('hidden');
         printFooter.classList.add('hidden');
 
-        // คืนค่าฟังก์ชันแสดงผลแกน X ตามหน้าจอปรกติ
+        // คืนค่าฟังก์ชันแสดงผลแกน X และขนาดกราฟตามหน้าจอปรกติ
         if (chartInstance) {
           chartInstance.options.scales.x.ticks.callback = function(val, index) {
             const isMobile = window.innerWidth < 768;
             if (isMobile && index % 2 !== 0) return '';
             return this.getLabelForValue(val);
           };
+          chartInstance.resize();
           chartInstance.update('none');
         }
       });

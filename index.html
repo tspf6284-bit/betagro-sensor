@@ -21,23 +21,28 @@
       display: none !important;
     }
 
-    /* 📌 บังคับให้ PDF ขยายเต็มหน้าจอแนวนอน A4 แผ่ความกว้างเต็มที่ */
+    /* 📌 ซ่อนปุ่มดาวน์โหลด PDF อัตโนมัติเมื่อเปิดผ่านมือถือ */
+    @media (max-width: 768px) {
+      .hide-on-mobile {
+        display: none !important;
+      }
+    }
+
+    /* 📌 จัดแต่งพื้นที่ PDF แนวนอนให้เต็มหน้าพอดีและจบในหน้าเดียว */
     .rendering-pdf #pdf-container {
       width: 100% !important;
-      max-width: none !important;
       background: white !important;
-      padding: 25px !important;
-      margin: 0 !important;
+      padding: 10px 15px !important;
     }
 
     .rendering-pdf .chart-wrapper {
       width: 100% !important;
-      height: 420px !important;
+      height: 240px !important;
     }
 
     .rendering-pdf canvas {
       width: 100% !important;
-      height: 420px !important;
+      height: 240px !important;
     }
   </style>
 </head>
@@ -84,7 +89,7 @@
   <!-- ==================== 2. MAIN APP CONTAINER ==================== -->
   <div id="app-view" class="w-full min-h-screen hidden">
     
-    <!-- ---------------- PAGE 1: OVERVIEW LIST (หน้าแรก) ---------------- -->
+    <!-- ---------------- PAGE A: OVERVIEW LIST ---------------- -->
     <div id="main-view" class="max-w-2xl mx-auto p-4 md:p-6 pb-24">
       <div class="flex justify-between items-center mb-4 relative">
         <div class="flex items-center gap-2 mx-auto">
@@ -127,18 +132,18 @@
     </div>
 
 
-    <!-- ---------------- PAGE 2: DETAIL & FULL GRAPH (หน้าที่ 2: กราฟเต็มจอ) ---------------- -->
-    <div id="detail-view" class="max-w-6xl mx-auto p-3 md:p-6 hidden">
+    <!-- ---------------- PAGE B: DETAIL MONITOR ---------------- -->
+    <div id="detail-view" class="max-w-6xl mx-auto p-4 md:p-6 hidden">
       
       <!-- ส่วนหัวข้อและการควบคุมปกติ -->
-      <div class="bg-white rounded-2xl p-3.5 md:p-4 shadow-sm flex flex-wrap justify-between items-center mb-4 md:mb-6 gap-3 border border-gray-100 no-pdf">
+      <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-wrap justify-between items-center mb-6 gap-3 border border-gray-100 no-pdf">
         <div class="flex items-center gap-3">
           <button onclick="closeDetail()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all">
             <i class="fa-solid fa-arrow-left mr-1"></i> กลับหน้าหลัก
           </button>
           <div class="flex items-center gap-2">
             <span class="text-2xl">🌤️</span>
-            <h1 id="detail-title" class="text-lg md:text-xl font-black text-slate-800">--</h1>
+            <h1 id="detail-title" class="text-xl font-black text-slate-800">--</h1>
           </div>
         </div>
         
@@ -150,17 +155,17 @@
         </div>
       </div>
 
-      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF / หน้าที่ 2 แสดงกราฟแบบเต็มจอ -->
-      <div id="pdf-container" class="space-y-4 md:space-y-6 bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-gray-100 relative">
+      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF (ดีไซน์ดั้งเดิม สะอาดตา ไม่มีสีพื้นหลัง) -->
+      <div id="pdf-container" class="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
         
-        <!-- หัวข้อเอกสารเฉพาะตอนออก PDF -->
-        <div class="hidden print-header text-center pb-3 border-b border-gray-200 mb-4">
-          <h1 id="pdf-main-title" class="text-2xl font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
-          <p class="text-xs text-gray-500 mt-1">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
+        <!-- หัวข้อเอกสารเฉพาะตอนออก PDF (ดีไซน์เดิม) -->
+        <div class="hidden print-header text-center pb-3 border-b border-gray-100">
+          <h1 id="pdf-main-title" class="text-xl font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
+          <p class="text-xs text-gray-500 mt-0.5">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
         </div>
 
-        <!-- 📌 1. การ์ดแสดงค่า 3 ช่อง -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <!-- การ์ดแสดงค่า 3 ช่องด้านบน -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white p-4 rounded-2xl border-2 border-red-400/80 shadow-sm relative">
             <div class="text-xs font-bold text-slate-600 mb-1">อุณหภูมิ (TEMPERATURE)</div>
             <div class="text-3xl font-black text-slate-800 mb-1">
@@ -186,38 +191,35 @@
           </div>
         </div>
 
-        <!-- 📌 2. ส่วนแสดงกราฟเต็มพื้นที่ (Full Width) -->
-        <div class="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+        <!-- ส่วนแสดงกราฟ และตัวเลือกควบคุม -->
+        <div>
+          <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
             <div class="flex items-center gap-2">
               <span class="text-lg">📈</span>
               <h2 id="chart-title" class="text-base font-bold text-slate-800">กราฟแสดงผล Real-time & ย้อนหลัง</h2>
             </div>
             
-            <div class="flex items-center gap-2 text-xs md:text-sm flex-wrap w-full md:w-auto no-pdf">
-              <div class="flex items-center gap-1.5 w-full md:w-auto">
-                <label for="historyDatePicker" class="text-slate-600 font-semibold whitespace-nowrap">เลือกวันที่:</label>
-                <input type="date" id="historyDatePicker" class="border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-700 flex-1 md:flex-none">
-              </div>
-              <div class="flex items-center gap-2 w-full md:w-auto justify-end mt-1 md:mt-0">
-                <button onclick="loadHistoryByDate()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex-1 md:flex-none text-center">
-                  <i class="fa-solid fa-magnifying-glass mr-1"></i> ค้นหา
-                </button>
-                <button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 flex-1 md:flex-none">
-                  <i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด PDF
-                </button>
-              </div>
+            <div class="flex items-center gap-2 text-sm flex-wrap no-pdf">
+              <label for="historyDatePicker" class="text-slate-600 font-semibold">เลือกวันที่:</label>
+              <input type="date" id="historyDatePicker" class="border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-700">
+              <button onclick="loadHistoryByDate()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm">
+                <i class="fa-solid fa-magnifying-glass mr-1"></i> ค้นหา
+              </button>
+              <!-- ปุ่มดาวน์โหลด PDF ซ่อนอัตโนมัติบนมือถือด้วยคลาส hide-on-mobile -->
+              <button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 hide-on-mobile">
+                <i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด PDF
+              </button>
             </div>
           </div>
 
-          <!-- ขนาดกราฟขยายเต็มความกว้าง -->
-          <div class="relative w-full h-[350px] md:h-[450px] chart-wrapper">
+          <!-- ขนาดกราฟแนวนอนเต็มตา -->
+          <div class="relative w-full h-[260px] md:h-[300px] chart-wrapper">
             <canvas id="realtimeChart"></canvas>
           </div>
         </div>
 
         <!-- 📌 ส่วนแสดงวันที่ข้อมูลและวันที่พิมพ์ที่มุมล่างขวา -->
-        <div class="hidden print-footer text-right text-xs text-gray-500 pt-3 mt-4 border-t border-gray-200">
+        <div class="hidden print-footer text-right text-[11px] text-gray-500 pt-2 mt-2 border-t border-gray-100">
           <span id="pdf-report-date">วันที่ข้อมูล: --</span> | <span id="pdf-print-date">วันที่พิมพ์: --</span>
         </div>
 
@@ -282,7 +284,7 @@
       listenFirebaseData();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF (ขยายเต็มหน้า A4 แนวนอน แผ่กราฟเต็มความกว้าง)
+    // 📌 ฟังก์ชันดาวน์โหลด PDF (ทำงานเฉพาะบนคอมพิวเตอร์/แท็บเล็ต)
     window.downloadPDF = function() {
       const container = document.getElementById('pdf-container');
       const selectedDate = document.getElementById('historyDatePicker').value || 'report';
@@ -299,19 +301,11 @@
       printHeader.classList.remove('hidden');
       printFooter.classList.remove('hidden');
 
-      if (chartInstance) {
-        chartInstance.options.scales.x.ticks.callback = function(val, index) {
-          return this.getLabelForValue(val);
-        };
-        chartInstance.resize();
-        chartInstance.update('none');
-      }
-
       const opt = {
-        margin:       [10, 10, 10, 10],
+        margin:       [5, 5, 5, 5],
         filename:     `TSPF3_1_${selectedRoomId}_${selectedDate}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false, windowWidth: 1200 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
       };
 
@@ -319,16 +313,6 @@
         document.body.classList.remove('rendering-pdf');
         printHeader.classList.add('hidden');
         printFooter.classList.add('hidden');
-
-        if (chartInstance) {
-          chartInstance.options.scales.x.ticks.callback = function(val, index) {
-            const isMobile = window.innerWidth < 768;
-            if (isMobile && index % 2 !== 0) return '';
-            return this.getLabelForValue(val);
-          };
-          chartInstance.resize();
-          chartInstance.update('none');
-        }
       });
     };
 
@@ -345,7 +329,7 @@
               borderColor: '#ef4444',
               backgroundColor: 'rgba(239, 68, 68, 0.1)',
               borderWidth: 2.5,
-              pointRadius: 3,
+              pointRadius: 3.5,
               pointHoverRadius: 5,
               spanGaps: true,
               cubicInterpolationMode: 'monotone',
@@ -357,7 +341,7 @@
               borderColor: '#3b82f6',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               borderWidth: 2.5,
-              pointRadius: 3,
+              pointRadius: 3.5,
               pointHoverRadius: 5,
               spanGaps: true,
               cubicInterpolationMode: 'monotone',
@@ -369,7 +353,7 @@
               borderColor: '#10b981',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               borderWidth: 2.5,
-              pointRadius: 3,
+              pointRadius: 3.5,
               pointHoverRadius: 5,
               spanGaps: true,
               cubicInterpolationMode: 'monotone',
@@ -388,12 +372,7 @@
               grid: { color: '#f1f5f9' },
               ticks: { 
                 font: { size: 10 },
-                autoSkip: false,
-                callback: function(val, index) {
-                  const isMobile = window.innerWidth < 768;
-                  if (isMobile && index % 2 !== 0) return '';
-                  return this.getLabelForValue(val);
-                }
+                autoSkip: false
               },
               title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 11 } }
             },

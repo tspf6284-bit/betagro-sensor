@@ -21,15 +21,16 @@
       display: none !important;
     }
 
-    /* 📌 จัดแต่งพื้นที่ PDF แนวนอนให้เต็มหน้าพอดีสวยงาม */
+    /* 📌 บังคับให้ PDF ขยายเต็มหน้าจอแนวนอน A4 แบบเต็มพื้นที่สวยงาม */
     .rendering-pdf #pdf-container {
       width: 100% !important;
+      max-width: none !important;
       background: white !important;
-      padding: 20px !important;
+      padding: 25px !important;
     }
 
     .rendering-pdf .chart-wrapper {
-      height: 380px !important;
+      height: 360px !important;
     }
   </style>
 </head>
@@ -146,9 +147,9 @@
       <div id="pdf-container" class="space-y-4 md:space-y-6 bg-white p-3.5 md:p-6 rounded-2xl shadow-sm border border-gray-100 relative">
         
         <!-- หัวข้อเอกสารเฉพาะตอนออก PDF -->
-        <div class="hidden print-header text-center pb-2 border-b border-gray-100">
-          <h1 id="pdf-main-title" class="text-xl font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
-          <p class="text-xs text-gray-500 mt-0.5">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
+        <div class="hidden print-header text-center pb-3 border-b border-gray-200 mb-4">
+          <h1 id="pdf-main-title" class="text-2xl font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
+          <p class="text-xs text-gray-500 mt-1">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
         </div>
 
         <!-- 📌 1. การ์ดแสดงค่า 3 ช่อง -->
@@ -202,14 +203,14 @@
             </div>
           </div>
 
-          <!-- ขนาดกราฟ (ปรับความสูงให้เหมาะสมในมือถือและ PDF) -->
+          <!-- ขนาดกราฟ -->
           <div class="relative w-full h-[280px] md:h-[340px] chart-wrapper">
             <canvas id="realtimeChart"></canvas>
           </div>
         </div>
 
         <!-- 📌 ส่วนแสดงวันที่ข้อมูลและวันที่พิมพ์ที่มุมล่างขวา -->
-        <div class="hidden print-footer text-right text-[11px] text-gray-500 pt-2 mt-2 border-t border-gray-100">
+        <div class="hidden print-footer text-right text-xs text-gray-500 pt-3 mt-4 border-t border-gray-200">
           <span id="pdf-report-date">วันที่ข้อมูล: --</span> | <span id="pdf-print-date">วันที่พิมพ์: --</span>
         </div>
 
@@ -274,7 +275,7 @@
       listenFirebaseData();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF (บังคับให้แกน X แสดงครบ 24 ชม. ตอนพิมพ์ PDF)
+    // 📌 ฟังก์ชันดาวน์โหลด PDF (ขยายเต็มหน้า A4 แนวนอน แสดงครบทุกชั่วโมง)
     window.downloadPDF = function() {
       const container = document.getElementById('pdf-container');
       const selectedDate = document.getElementById('historyDatePicker').value || 'report';
@@ -291,7 +292,7 @@
       printHeader.classList.remove('hidden');
       printFooter.classList.remove('hidden');
 
-      // บังคับให้ตอนพิมพ์ PDF แสดงป้ายกำกับแกน X ทุกชั่วโมงแบบเต็มๆ
+      // บังคับให้ตอนพิมพ์ PDF แสดงเวลาแกน X ครบถ้วนทุกชั่วโมง
       if (chartInstance) {
         chartInstance.options.scales.x.ticks.callback = function(val, index) {
           return this.getLabelForValue(val);
@@ -300,7 +301,7 @@
       }
 
       const opt = {
-        margin:       [8, 8, 8, 8],
+        margin:       [10, 10, 10, 10],
         filename:     `TSPF3_1_${selectedRoomId}_${selectedDate}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
@@ -312,7 +313,7 @@
         printHeader.classList.add('hidden');
         printFooter.classList.add('hidden');
 
-        // คืนค่าฟังก์ชันการแสดงผลแกน X ตามขนาดหน้าจอเดิม
+        // คืนค่าฟังก์ชันแสดงผลแกน X ตามหน้าจอปรกติ
         if (chartInstance) {
           chartInstance.options.scales.x.ticks.callback = function(val, index) {
             const isMobile = window.innerWidth < 768;
@@ -381,7 +382,6 @@
               ticks: { 
                 font: { size: 10 },
                 autoSkip: false,
-                // 📌 ในมือถือจะแสดงเว้นชั่วโมง (แสดงเฉพาะชั่วโมงคู่) เพื่อไม่ให้ตัวหนังสือทับกัน แต่จอคอมหรือ PDF จะแสดงครบ
                 callback: function(val, index) {
                   const isMobile = window.innerWidth < 768;
                   if (isMobile && index % 2 !== 0) return '';

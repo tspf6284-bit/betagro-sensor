@@ -8,52 +8,32 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- โหลดไลบรารี html2pdf -->
+  <!-- โหลดไลบรารี html2pdf และ SheetJS (xlsx) สำหรับสร้าง Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     body { 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
       background-color: #edf2f7; 
     }
-    
-    /* ซ่อนปุ่มเวลาแปลงเป็น PDF */
-    .rendering-pdf .no-pdf {
-      display: none !important;
-    }
-
-    /* 📌 ซ่อนปุ่มดาวน์โหลด PDF เฉพาะบนมือถือ */
-    @media (max-width: 768px) {
-      .hide-on-mobile {
-        display: none !important;
-      }
-    }
-
-    /* 📌 บังคับพื้นที่ PDF ให้พอดีหน้ากระดาษ A4 แนวนอนในหน้าเดียวจบ */
-    .rendering-pdf #pdf-container {
-      width: 100% !important;
-      background: white !important;
-      padding: 6px 10px !important;
-    }
-
-    .rendering-pdf .chart-wrapper {
-      width: 100% !important;
-      height: 250px !important;
-    }
-
-    .rendering-pdf canvas {
-      width: 100% !important;
-      height: 250px !important;
+    .rendering-pdf .no-pdf { display: none !important; }
+    @media (max-width: 768px) { .hide-on-mobile { display: none !important; } }
+    .rendering-pdf #pdf-container { width: 100% !important; background: white !important; padding: 6px 10px !important; }
+    .rendering-pdf .chart-wrapper { width: 100% !important; height: 250px !important; }
+    .rendering-pdf canvas { width: 100% !important; height: 250px !important; }
+    @keyframes pulse-alert {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    .alarm-blink { animation: pulse-alert 1s infinite; }
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-center items-center">
+<body class="min-h-screen bg-slate-100 pb-24">
 
   <!-- ==================== 1. LOGIN VIEW ==================== -->
-  <div id="login-view" class="w-full max-w-sm p-4">
-    <div class="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 text-center">
-      <div class="w-20 h-20 bg-amber-100/70 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
-        🌤️
-      </div>
+  <div id="login-view" class="fixed inset-0 bg-slate-100 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl p-8 shadow-xl border border-gray-100 text-center w-full max-w-sm">
+      <div class="w-20 h-20 bg-amber-100/70 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">🌤️</div>
       <h1 class="text-2xl font-black text-slate-800 tracking-tight mb-1">betagro_sensor</h1>
       <p class="text-xs text-gray-400 font-medium mb-6">เข้าสู่ระบบเพื่อดูแดชบอร์ดข้อมูล Real-time</p>
 
@@ -78,7 +58,7 @@
           ⚠️ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง!
         </div>
 
-        <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md active:scale-95 mt-2">
+        <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-md active:scale-95 mt-2 cursor-pointer">
           เข้าสู่ระบบ
         </button>
       </form>
@@ -87,26 +67,32 @@
 
 
   <!-- ==================== 2. MAIN APP CONTAINER ==================== -->
-  <div id="app-view" class="w-full min-h-screen hidden">
+  <div id="app-view" class="w-full max-w-6xl mx-auto p-4 md:p-6 hidden">
     
-    <!-- ---------------- PAGE A: OVERVIEW LIST ---------------- -->
-    <div id="main-view" class="max-w-2xl mx-auto p-4 md:p-6 pb-24">
+    <!-- ---------------- TAB 1: OVERVIEW LIST (หน้าแรก) ---------------- -->
+    <div id="main-view" class="max-w-2xl mx-auto w-full">
       <div class="flex justify-between items-center mb-4 relative">
         <div class="flex items-center gap-2 mx-auto">
           <span class="text-2xl">🌤️</span>
           <h1 class="text-xl font-black text-slate-800 tracking-tight">betagro_sensor</h1>
         </div>
-        <button onclick="handleLogout()" title="ออกจากระบบ" class="text-gray-500 hover:text-red-500 text-base absolute right-0">
+        <button onclick="handleLogout()" title="ออกจากระบบ" class="text-gray-500 hover:text-red-500 text-base absolute right-0 cursor-pointer">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
 
-      <div class="relative mb-5">
-        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400"></i>
-        <input type="text" placeholder="Search Device..." class="w-full pl-11 pr-4 py-2.5 bg-gray-200/70 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-700">
+      <!-- แถบแจ้งเตือนเมื่อเกิด Alarm -->
+      <div id="alarm-banner" class="hidden bg-red-500 text-white p-3 rounded-2xl mb-4 shadow-md flex items-center justify-between text-xs font-bold alarm-blink">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-base"></i>
+          <span id="alarm-banner-text">แจ้งเตือน: อุณหภูมิหรือเซ็นเซอร์ผิดปกติ!</span>
+        </div>
+        <button onclick="toggleAudioMute()" id="mute-btn" class="bg-red-700 hover:bg-red-800 px-2.5 py-1 rounded-xl text-[11px] cursor-pointer">
+          <i class="fa-solid fa-volume-high"></i> ปิดเสียง
+        </button>
       </div>
 
-      <div class="grid grid-cols-4 gap-2.5 mb-6">
+      <div class="grid grid-cols-4 gap-2.5 mb-5">
         <div class="bg-blue-50/80 border-2 border-blue-400/80 rounded-2xl p-3 text-center shadow-sm">
           <div id="summary-total" class="text-2xl font-bold text-blue-500">4</div>
           <div class="text-[11px] text-gray-400 mt-0.5">Total</div>
@@ -125,20 +111,25 @@
         </div>
       </div>
 
+      <!-- ปุ่มตั้งค่าอุณหภูมิ Max/Min -->
+      <div class="mb-5">
+        <button onclick="openSettingsModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer">
+          <i class="fa-solid fa-gear text-sm"></i> ตั้งค่าเกณฑ์อุณหภูมิสูงสุด / ต่ำสุด (Max / Min)
+        </button>
+      </div>
+
       <h2 class="text-base font-bold text-gray-800 mb-3">Device List</h2>
       <div id="device-list" class="space-y-3.5">
-        <div class="text-center py-8 text-gray-400 text-sm">กำลังเชื่อมต่อข้อมูลจาก Firebase...</div>
+        <div class="text-center py-8 text-gray-400 text-sm">กำลังเชื่อมต่อข้อมูล...</div>
       </div>
     </div>
 
 
-    <!-- ---------------- PAGE B: DETAIL MONITOR ---------------- -->
-    <div id="detail-view" class="max-w-6xl mx-auto p-4 md:p-6 hidden">
-      
-      <!-- ส่วนหัวข้อและการควบคุมปกติ -->
-      <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-wrap justify-between items-center mb-6 gap-3 border border-gray-100 no-pdf">
+    <!-- ---------------- TAB 2: DETAIL MONITOR (หน้าเล้าเฉพาะตัว + กราฟ Real-time 24 ชม.) ---------------- -->
+    <div id="detail-view" class="w-full hidden">
+      <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-wrap justify-between items-center mb-4 gap-3 border border-gray-100 no-pdf">
         <div class="flex items-center gap-3">
-          <button onclick="closeDetail()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all">
+          <button onclick="switchTab('home')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer">
             <i class="fa-solid fa-arrow-left mr-1"></i> กลับหน้าหลัก
           </button>
           <div class="flex items-center gap-2">
@@ -155,16 +146,8 @@
         </div>
       </div>
 
-      <!-- 📌 พื้นที่สำหรับออกรายงาน PDF -->
+      <!-- พื้นที่แสดงค่าปัจจุบันและกราฟ Real-time 24 ชม. -->
       <div id="pdf-container" class="space-y-3 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 relative">
-        
-        <!-- หัวข้อเอกสารเฉพาะตอนออก PDF -->
-        <div class="hidden print-header text-center pb-2 border-b border-gray-100">
-          <h1 id="pdf-main-title" class="text-lg font-black text-slate-800">รายงานข้อมูลโรงเรือน TSPF3/1</h1>
-          <p class="text-[11px] text-gray-500 mt-0.5">ระบบติดตามสภาพแวดล้อมอัตโนมัติ (Betagro Sensor)</p>
-        </div>
-
-        <!-- การ์ดแสดงค่า 3 ช่องด้านบน -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div class="grid grid-cols-2 gap-3 col-span-1 md:col-span-2">
             <div class="bg-white p-3 rounded-xl border-2 border-red-400/80 shadow-sm relative">
@@ -193,49 +176,147 @@
           </div>
         </div>
 
-        <!-- ส่วนแสดงกราฟ และตัวเลือกควบคุม -->
         <div>
-          <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-3">
-            <div class="flex items-center gap-2">
-              <span class="text-base">📈</span>
-              <h2 id="chart-title" class="text-sm md:text-base font-bold text-slate-800">กราฟแสดงผล TSPF3/1 (102) Real-time & ย้อนหลัง</h2>
-            </div>
-            
-            <!-- 📌 ช่องเลือกวันที่ตัวเล็กเรียงคู่กับปุ่มค้นหาและดาวน์โหลด PDF -->
-            <div class="flex items-center gap-1.5 text-xs flex-wrap no-pdf w-full md:w-auto justify-end">
-              <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5">
-                <span class="text-slate-500 font-semibold text-[11px]">วันที่:</span>
-                <input type="date" id="historyDatePicker" class="bg-transparent text-slate-700 text-xs focus:outline-none">
-              </div>
-              <button onclick="loadHistoryByDate()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1">
-                <i class="fa-solid fa-magnifying-glass"></i> ค้นหา
-              </button>
-              <!-- 📌 ปุ่มดาวน์โหลด PDF ซ่อนอัตโนมัติบนมือถือด้วยคลาส hide-on-mobile -->
-              <button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1 hide-on-mobile">
-                <i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด PDF
-              </button>
-            </div>
+          <div class="flex justify-between items-center mb-2">
+            <h2 id="chart-title" class="text-sm md:text-base font-bold text-slate-800">กราฟแสดงผล Real-time 24 ชั่วโมง</h2>
+            <button onclick="downloadPDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center gap-1 hide-on-mobile cursor-pointer">
+              <i class="fa-solid fa-file-pdf"></i> ดาวน์โหลด PDF
+            </button>
           </div>
-
-          <!-- ขนาดกราฟแนวนอนปรับความสูงสมส่วน 250px -->
           <div class="relative w-full h-[250px] md:h-[300px] chart-wrapper">
             <canvas id="realtimeChart"></canvas>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- 📌 ส่วนแสดงวันที่ข้อมูลและวันที่พิมพ์ที่มุมล่างขวา -->
-        <div class="hidden print-footer text-right text-[10px] text-gray-500 pt-1 mt-1 border-t border-gray-100">
-          <span id="pdf-report-date">วันที่ข้อมูล: --</span> | <span id="pdf-print-date">วันที่พิมพ์: --</span>
+
+    <!-- ---------------- TAB 3: HISTORY VIEW (แท็บข้อมูลย้อนหลัง + ปุ่มดาวน์โหลด Excel) ---------------- -->
+    <div id="history-view" class="w-full hidden">
+      <div class="bg-white rounded-2xl p-4 shadow-sm flex flex-wrap justify-between items-center mb-4 gap-3 border">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📈</span>
+          <h1 class="text-xl font-black text-slate-800">ระบบข้อมูลย้อนหลัง & ดาวน์โหลด Excel</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-bold text-slate-600">เลือกโรงเรือน:</label>
+          <select id="historyRoomSelect" onchange="loadSpecificTimeHistory()" class="border rounded-xl px-3 py-1.5 text-xs font-bold bg-slate-50 text-slate-700 cursor-pointer">
+            <option value="102">TSPF3/1 (102)</option>
+            <option value="103">TSPF3/1 (103)</option>
+            <option value="104">TSPF3/1 (104)</option>
+            <option value="105">TSPF3/1 (105)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- แผงเลือกตั้งแต่วันที่ ถึงวันที่ + เลือกเวลา -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border mb-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2 flex-wrap text-xs">
+            <span class="font-bold text-slate-700">ตั้งแต่วันที่:</span>
+            <input type="date" id="historyStartDate" class="border rounded-xl px-2.5 py-1.5 bg-slate-50">
+            <span class="font-bold text-slate-700">ถึงวันที่:</span>
+            <input type="date" id="historyEndDate" class="border rounded-xl px-2.5 py-1.5 bg-slate-50">
+            
+            <span class="font-bold text-slate-700 ml-2">เลือกเวลา:</span>
+            <select id="historyTargetHour" class="border rounded-xl px-2.5 py-1.5 bg-slate-50 font-semibold text-slate-700 cursor-pointer">
+              <option value="0">00:00 น.</option>
+              <option value="1">01:00 น.</option>
+              <option value="2">02:00 น.</option>
+              <option value="3">03:00 น.</option>
+              <option value="4">04:00 น.</option>
+              <option value="5">05:00 น.</option>
+              <option value="6">06:00 น.</option>
+              <option value="7">07:00 น.</option>
+              <option value="8" selected>08:00 น.</option>
+              <option value="9">09:00 น.</option>
+              <option value="10">10:00 น.</option>
+              <option value="11">11:00 น.</option>
+              <option value="12">12:00 น.</option>
+              <option value="13">13:00 น.</option>
+              <option value="14">14:00 น.</option>
+              <option value="15">15:00 น.</option>
+              <option value="16">16:00 น.</option>
+              <option value="17">17:00 น.</option>
+              <option value="18">18:00 น.</option>
+              <option value="19">19:00 น.</option>
+              <option value="20">20:00 น.</option>
+              <option value="21">21:00 น.</option>
+              <option value="22">22:00 น.</option>
+              <option value="23">23:00 น.</option>
+            </select>
+
+            <button onclick="loadSpecificTimeHistory()" class="bg-slate-800 hover:bg-slate-900 text-white px-3.5 py-1.5 rounded-xl font-bold shadow-sm cursor-pointer">
+              <i class="fa-solid fa-magnifying-glass mr-1"></i> ค้นหา
+            </button>
+          </div>
+
+          <!-- ปุ่มลัด 7 วัน / 1 เดือน -->
+          <div class="flex items-center gap-2 flex-wrap text-xs">
+            <button onclick="loadLast7Days()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm cursor-pointer">
+              <i class="fa-solid fa-calendar-week mr-1"></i> 7 วันที่ผ่านมา
+            </button>
+            <button onclick="loadCurrentMonth()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm cursor-pointer">
+              <i class="fa-solid fa-calendar-days mr-1"></i> 1 เดือนนี้
+            </button>
+          </div>
         </div>
 
+        <!-- 📌 ปุ่มดาวน์โหลด Excel ลงเครื่อง -->
+        <div class="pt-3 border-t border-gray-100 flex justify-end">
+          <button onclick="downloadExcelFile()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer transition-all">
+            <i class="fa-solid fa-file-excel"></i> ดาวน์โหลดไฟล์ Excel ลงเครื่อง
+          </button>
+        </div>
+      </div>
+
+      <!-- ส่วนแสดงกราฟย้อนหลัง -->
+      <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border relative">
+        <h2 class="text-sm md:text-base font-bold text-slate-800 mb-2">กราฟข้อมูลย้อนหลังตามช่วงวันที่และเวลาที่เลือก</h2>
+        <div class="relative w-full h-[300px]">
+          <canvas id="historyChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== 📌 BOTTOM NAVIGATION BAR (แถบเมนูด้านล่าง) ==================== -->
+  <div id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-xl flex justify-around items-center py-2.5 z-40 max-w-md mx-auto rounded-t-2xl hidden">
+    <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-slate-800 font-bold text-xs transition-all p-1 cursor-pointer">
+      <i class="fa-solid fa-house text-lg mb-0.5 text-amber-500"></i> หน้าแรก
+    </button>
+    <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center text-gray-400 font-medium text-xs transition-all p-1 cursor-pointer">
+      <i class="fa-solid fa-chart-line text-lg mb-0.5"></i> ข้อมูลย้อนหลัง
+    </button>
+  </div>
+
+  <!-- ==================== MODAL ตั้งค่าอุณหภูมิ Max / Min ==================== -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-4">
+    <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-gray-100">
+      <h3 class="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">⚙️ ตั้งค่าเกณฑ์อุณหภูมิโรงเรือน</h3>
+      <div class="space-y-4 mb-6">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">อุณหภูมิสูงสุด (Max Temp °C)</label>
+          <input type="number" step="0.1" id="inputMaxTemp" class="w-full border rounded-xl p-3 text-sm bg-slate-50 font-bold text-red-500" value="32.0">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1.5">อุณหภูมิต่ำสุด (Min Temp °C)</label>
+          <input type="number" step="0.1" id="inputMinTemp" class="w-full border rounded-xl p-3 text-sm bg-slate-50 font-bold text-blue-500" value="24.0">
+        </div>
+      </div>
+      <div class="flex gap-2.5">
+        <button onclick="saveTemperatureLimits()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl text-xs shadow-md cursor-pointer">บันทึกค่า</button>
+        <button onclick="closeSettingsModal()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl text-xs cursor-pointer">ยกเลิก</button>
       </div>
     </div>
   </div>
 
+
   <!-- ==================== 3. JAVASCRIPT & FIREBASE LOGIC ==================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, get, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       databaseURL: "https://betagro-sensor-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -244,12 +325,67 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let chartInstance = null;
+    let realtimeChartInstance = null;
+    let historyChartInstance = null;
     let latestRealtimeData = null;
-    let isViewingHistory = false;
     let selectedRoomId = 102; 
+    let currentHistoryTableData = []; 
     const roomList = [102, 103, 104, 105];
-    const hours24 = Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`);
+
+    // ตัวแปรเสียงเตือน (Web Audio API)
+    let audioCtx = null;
+    let isAlarmMuted = false;
+    let alarmInterval = null;
+
+    function playBeep() {
+      if (isAlarmMuted) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 800; // ความถี่เสียงบี๊บ
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2); // เสียงดัง 0.2 วินาที
+      } catch (e) {
+        console.error("Audio error:", e);
+      }
+    }
+
+    function startAlarmSound() {
+      if (!alarmInterval && !isAlarmMuted) {
+        playBeep();
+        alarmInterval = setInterval(() => {
+          playBeep();
+        }, 1000); // ร้องทุกๆ 1 วินาที
+      }
+    }
+
+    function stopAlarmSound() {
+      if (alarmInterval) {
+        clearInterval(alarmInterval);
+        alarmInterval = null;
+      }
+    }
+
+    window.toggleAudioMute = function() {
+      isAlarmMuted = !isAlarmMuted;
+      const btn = document.getElementById('mute-btn');
+      if (isAlarmMuted) {
+        stopAlarmSound();
+        btn.innerHTML = '<i class="fa-solid fa-volume-xmark"></i> เปิดเสียง';
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-volume-high"></i> ปิดเสียง';
+      }
+    };
 
     if (localStorage.getItem("isLoggedIn") === "true") {
       showDashboard();
@@ -273,259 +409,310 @@
     window.handleLogout = function() {
       localStorage.removeItem("isLoggedIn");
       document.getElementById("app-view").classList.add("hidden");
+      document.getElementById("bottom-nav").classList.add("hidden");
       document.getElementById("login-view").classList.remove("hidden");
-      document.body.className = "min-h-screen flex flex-col justify-center items-center";
     };
 
     function showDashboard() {
       document.getElementById("login-view").classList.add("hidden");
       document.getElementById("app-view").classList.remove("hidden");
-      document.body.className = "p-0 bg-slate-100 min-h-screen";
+      document.getElementById("bottom-nav").classList.remove("hidden");
 
       const todayStr = new Date().toISOString().split('T')[0];
-      document.getElementById('historyDatePicker').value = todayStr;
+      document.getElementById('historyStartDate').value = todayStr;
+      document.getElementById('historyEndDate').value = todayStr;
 
-      initChart();
+      initCharts();
       listenFirebaseData();
+      loadSavedLimits();
     }
 
-    // 📌 ฟังก์ชันดาวน์โหลด PDF ให้จบในหน้าเดียวเป๊ะ
-    window.downloadPDF = function() {
-      const container = document.getElementById('pdf-container');
-      const selectedDate = document.getElementById('historyDatePicker').value || 'report';
-      const printHeader = container.querySelector('.print-header');
-      const printFooter = container.querySelector('.print-footer');
+    window.switchTab = function(tabName) {
+      const tabHome = document.getElementById('main-view');
+      const tabDetail = document.getElementById('detail-view');
+      const tabHistory = document.getElementById('history-view');
+      const navHome = document.getElementById('nav-home');
+      const navHistory = document.getElementById('nav-history');
 
-      const now = new Date();
-      const printDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      
-      document.getElementById('pdf-report-date').innerText = `วันที่ข้อมูล: ${selectedDate}`;
-      document.getElementById('pdf-print-date').innerText = `วันที่พิมพ์: ${printDateStr}`;
+      tabHome.classList.add('hidden');
+      tabDetail.classList.add('hidden');
+      tabHistory.classList.add('hidden');
 
-      document.body.classList.add('rendering-pdf');
-      printHeader.classList.remove('hidden');
-      printFooter.classList.remove('hidden');
-
-      if (chartInstance) {
-        chartInstance.options.scales.x.ticks.maxTicksLimit = 24;
-        chartInstance.resize();
-        chartInstance.update('none');
+      if(tabName === 'home') {
+        tabHome.classList.remove('hidden');
+        navHome.className = "flex flex-col items-center text-slate-800 font-bold text-xs transition-all p-1 cursor-pointer";
+        navHome.querySelector('i').className = "fa-solid fa-house text-lg mb-0.5 text-amber-500";
+        navHistory.className = "flex flex-col items-center text-gray-400 font-medium text-xs transition-all p-1 cursor-pointer";
+        navHistory.querySelector('i').className = "fa-solid fa-chart-line text-lg mb-0.5";
+      } else if(tabName === 'detail') {
+        tabDetail.classList.remove('hidden');
+        navHome.className = "flex flex-col items-center text-slate-800 font-bold text-xs transition-all p-1 cursor-pointer";
+        navHome.querySelector('i').className = "fa-solid fa-house text-lg mb-0.5 text-amber-500";
+        navHistory.className = "flex flex-col items-center text-gray-400 font-medium text-xs transition-all p-1 cursor-pointer";
+        navHistory.querySelector('i').className = "fa-solid fa-chart-line text-lg mb-0.5";
+        if(realtimeChartInstance) realtimeChartInstance.resize();
+      } else if(tabName === 'history') {
+        tabHistory.classList.remove('hidden');
+        navHistory.className = "flex flex-col items-center text-slate-800 font-bold text-xs transition-all p-1 cursor-pointer";
+        navHistory.querySelector('i').className = "fa-solid fa-chart-line text-lg mb-0.5 text-amber-500";
+        navHome.className = "flex flex-col items-center text-gray-400 font-medium text-xs transition-all p-1 cursor-pointer";
+        navHome.querySelector('i').className = "fa-solid fa-house text-lg mb-0.5";
+        loadSpecificTimeHistory();
+        if(historyChartInstance) historyChartInstance.resize();
       }
-
-      const opt = {
-        margin:       [4, 4, 4, 4],
-        filename:     `TSPF3_1_${selectedRoomId}_${selectedDate}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
-      };
-
-      html2pdf().from(container).set(opt).save().then(() => {
-        document.body.classList.remove('rendering-pdf');
-        printHeader.classList.add('hidden');
-        printFooter.classList.add('hidden');
-
-        if (chartInstance) {
-          chartInstance.options.scales.x.ticks.maxTicksLimit = window.innerWidth < 768 ? 12 : 24;
-          chartInstance.resize();
-          chartInstance.update('none');
-        }
-      });
     };
 
-    function initChart() {
-      const ctx = document.getElementById('realtimeChart').getContext('2d');
-      chartInstance = new Chart(ctx, {
+    window.closeDetail = () => switchTab('home');
+    window.openSettingsModal = () => document.getElementById('settingsModal').classList.remove('hidden');
+    window.closeSettingsModal = () => document.getElementById('settingsModal').classList.add('hidden');
+
+    let currentMaxLimit = 32.0;
+    let currentMinLimit = 24.0;
+
+    async function loadSavedLimits() {
+      try {
+        const snap = await get(ref(db, 'settings/alert_limits'));
+        if(snap.exists()) {
+          const val = snap.val();
+          if(val.max_temp) {
+            currentMaxLimit = val.max_temp;
+            document.getElementById('inputMaxTemp').value = val.max_temp;
+          }
+          if(val.min_temp) {
+            currentMinLimit = val.min_temp;
+            document.getElementById('inputMinTemp').value = val.min_temp;
+          }
+        }
+      } catch(e) { console.error(e); }
+    }
+
+    window.saveTemperatureLimits = async function() {
+      const maxT = parseFloat(document.getElementById('inputMaxTemp').value);
+      const minT = parseFloat(document.getElementById('inputMinTemp').value);
+      try {
+        await set(ref(db, 'settings/alert_limits'), { max_temp: maxT, min_temp: minT });
+        currentMaxLimit = maxT;
+        currentMinLimit = minT;
+        alert("✅ บันทึกค่าเกณฑ์อุณหภูมิเรียบร้อยแล้ว!");
+        closeSettingsModal();
+      } catch(err) { alert("เกิดข้อผิดพลาดในการบันทึก"); }
+    };
+
+    function initCharts() {
+      const ctx1 = document.getElementById('realtimeChart').getContext('2d');
+      realtimeChartInstance = new Chart(ctx1, {
         type: 'line',
         data: {
-          labels: hours24,
+          labels: Array.from({ length: 24 }, (_, i) => `${String(i).padStart(2, '0')}:00`),
           datasets: [
-            {
-              label: 'อุณหภูมิ (°C)',
-              data: new Array(24).fill(null),
-              borderColor: '#ef4444',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              borderWidth: 2.5,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              spanGaps: true,
-              cubicInterpolationMode: 'monotone',
-              yAxisID: 'y'
-            },
-            {
-              label: 'ความชื้น (%)',
-              data: new Array(24).fill(null),
-              borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              borderWidth: 2.5,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              spanGaps: true,
-              cubicInterpolationMode: 'monotone',
-              yAxisID: 'y'
-            },
-            {
-              label: 'ความเร็วลม (m/s)',
-              data: new Array(24).fill(null),
-              borderColor: '#10b981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              borderWidth: 2.5,
-              pointRadius: 3,
-              pointHoverRadius: 5,
-              spanGaps: true,
-              cubicInterpolationMode: 'monotone',
-              yAxisID: 'y1'
-            }
+            { label: 'อุณหภูมิ (°C)', data: new Array(24).fill(null), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', yAxisID: 'y', tension: 0.2, borderWidth: 2 },
+            { label: 'ความชื้น (%)', data: new Array(24).fill(null), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', yAxisID: 'y', tension: 0.2, borderWidth: 2 },
+            { label: 'ความเร็วลม (m/s)', data: new Array(24).fill(null), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', yAxisID: 'y1', tension: 0.2, borderWidth: 2 }
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          interaction: { mode: 'index', intersect: false },
+          responsive: true, maintainAspectRatio: false,
           scales: {
-            x: {
-              type: 'category',
-              grid: { color: '#f1f5f9' },
-              ticks: { 
-                font: { size: 10 },
-                autoSkip: true,
-                maxTicksLimit: window.innerWidth < 768 ? 12 : 24
-              },
-              title: { display: true, text: 'เวลา (ชั่วโมง)', font: { size: 10 } }
-            },
-            y: {
-              type: 'linear',
-              display: true,
-              position: 'left',
-              min: 0,
-              max: 100,
-              title: { display: true, text: 'อุณหภูมิ (°C) / ความชื้น (%)', font: { size: 10 } }
-            },
-            y1: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              min: 0,
-              max: 3.0,
-              grid: { drawOnChartArea: false },
-              title: { display: true, text: 'ความเร็วลม (m/s)', font: { size: 10 } }
-            }
-          },
-          plugins: {
-            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } }
+            y: { type: 'linear', position: 'left', min: 0, max: 100 },
+            y1: { type: 'linear', position: 'right', min: 0, max: 3.0, grid: { drawOnChartArea: false } }
+          }
+        }
+      });
+
+      const ctx2 = document.getElementById('historyChart').getContext('2d');
+      historyChartInstance = new Chart(ctx2, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'อุณหภูมิ (°C)', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', yAxisID: 'y', tension: 0.2, borderWidth: 2 },
+            { label: 'ความชื้น (%)', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.05)', yAxisID: 'y', tension: 0.2, borderWidth: 2 },
+            { label: 'ความเร็วลม (m/s)', data: [], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)', yAxisID: 'y1', tension: 0.2, borderWidth: 2 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            y: { type: 'linear', position: 'left', min: 0, max: 100 },
+            y1: { type: 'linear', position: 'right', min: 0, max: 3.0, grid: { drawOnChartArea: false } }
           }
         }
       });
     }
 
     function listenFirebaseData() {
-      const rootRef = ref(db, '/weather_data');
-
-      onValue(rootRef, (snapshot) => {
+      onValue(ref(db, '/weather_data'), (snapshot) => {
         const data = snapshot.val();
         if (data) {
           latestRealtimeData = data;
           renderDashboard(data);
-          
-          if (!isViewingHistory) {
-            updateChartData(data);
-          }
         }
       });
     }
 
-    window.loadHistoryByDate = async function() {
-      const selectedDate = document.getElementById('historyDatePicker').value;
-      if (!selectedDate) {
-        alert("กรุณาเลือกวันที่ต้องการดูกราฟย้อนหลัง");
-        return;
-      }
+    window.loadSpecificTimeHistory = async function() {
+      const start = document.getElementById('historyStartDate').value;
+      const end = document.getElementById('historyEndDate').value;
+      const targetHourNum = parseInt(document.getElementById('historyTargetHour').value);
+      const hourStr = String(targetHourNum).padStart(2, '0');
+      selectedRoomId = document.getElementById('historyRoomSelect').value;
 
-      isViewingHistory = true;
-      const historyRef = ref(db, `history/${selectedDate}/${selectedRoomId}`);
+      if (!start || !end) return;
+
+      let allLabels = [];
+      let tempArr = [], humArr = [], windArr = [];
+      currentHistoryTableData = []; 
+      let curr = new Date(start);
+      let lastDate = new Date(end);
 
       try {
-        const snapshot = await get(historyRef);
-        let dayData = snapshot.val();
+        while(curr <= lastDate) {
+          let dateStr = curr.toISOString().split('T')[0];
+          let timeLabel = `${dateStr} ${hourStr}:00`;
+          allLabels.push(timeLabel);
 
-        if (!dayData) {
-          const generalHistoryRef = ref(db, `history/${selectedDate}`);
-          const generalSnap = await get(generalHistoryRef);
-          dayData = generalSnap.val();
-        }
+          let snapshot = await get(ref(db, `history/${dateStr}/${selectedRoomId}/${hourStr}`));
+          let hourData = snapshot.val();
 
-        let tempArr = new Array(24).fill(null);
-        let humArr = new Array(24).fill(null);
-        let windArr = new Array(24).fill(null);
-
-        if (dayData) {
-          for (let hourKey in dayData) {
-            const hourNum = Number(hourKey);
-            const val = dayData[hourKey];
-            if (!isNaN(hourNum) && hourNum >= 0 && hourNum <= 23 && val) {
-              const t = val.temperature !== undefined ? val.temperature : val.temp;
-              const h = val.humidity !== undefined ? val.humidity : val.hum;
-              const w = val.wind_speed !== undefined ? val.wind_speed : val.wind;
-
-              if (t !== undefined && t !== "") tempArr[hourNum] = Number(t);
-              if (h !== undefined && h !== "") humArr[hourNum] = Number(h);
-              if (w !== undefined && w !== "") windArr[hourNum] = Number(w);
-            }
+          if (!hourData) {
+            let generalSnap = await get(ref(db, `history/${dateStr}/${hourStr}`));
+            hourData = generalSnap.val();
           }
+
+          let t = null, h = null, w = null;
+          if (hourData) {
+            t = hourData.temperature !== undefined ? hourData.temperature : hourData.temp;
+            h = hourData.humidity !== undefined ? hourData.humidity : hourData.hum;
+            w = hourData.wind_speed !== undefined ? hourData.wind_speed : hourData.wind;
+
+            tempArr.push(t !== undefined && t !== "" ? Number(t) : null);
+            humArr.push(h !== undefined && h !== "" ? Number(h) : null);
+            windArr.push(w !== undefined && w !== "" ? Number(w) : null);
+          } else {
+            tempArr.push(null);
+            humArr.push(null);
+            windArr.push(null);
+          }
+
+          currentHistoryTableData.push({
+            "วันที่/เวลา": timeLabel,
+            "โรงเรือน": `TSPF3/1 (${selectedRoomId})`,
+            "อุณหภูมิ (°C)": t !== undefined && t !== null && t !== "" ? Number(t) : "N/A",
+            "ความชื้น (%)": h !== undefined && h !== null && h !== "" ? Number(h) : "N/A",
+            "ความเร็วลม (m/s)": w !== undefined && w !== null && w !== "" ? Number(w) : "N/A"
+          });
+
+          curr.setDate(curr.getDate() + 1);
         }
 
-        chartInstance.data.labels = hours24;
-        chartInstance.data.datasets[0].data = tempArr;
-        chartInstance.data.datasets[1].data = humArr;
-        chartInstance.data.datasets[2].data = windArr;
-        chartInstance.update();
-
+        historyChartInstance.data.labels = allLabels;
+        historyChartInstance.data.datasets[0].data = tempArr;
+        historyChartInstance.data.datasets[1].data = humArr;
+        historyChartInstance.data.datasets[2].data = windArr;
+        historyChartInstance.update();
       } catch (error) {
-        console.error("Error loading history date:", error);
-        alert("ไม่สามารถดึงข้อมูลของวันที่เลือกได้");
+        console.error("Error loading specific time history:", error);
       }
     };
 
-    function updateChartData(data) {
-      if (!chartInstance || isViewingHistory) return;
+    window.downloadExcelFile = function() {
+      const start = document.getElementById('historyStartDate').value;
+      const end = document.getElementById('historyEndDate').value;
 
+      if (currentHistoryTableData.length === 0) {
+        alert("⚠️ ไม่มีข้อมูลในช่วงเวลาที่เลือก กรุณากดค้นหาก่อนดาวน์โหลด");
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(currentHistoryTableData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "History Data");
+      
+      const fileName = `Betagro_Sensor_Report_${selectedRoomId}_${start}_to_${end}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      alert("✅ ดาวน์โหลดไฟล์ Excel เรียบร้อยแล้ว!");
+    };
+
+    window.loadLast7Days = function() {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 6);
+      document.getElementById('historyStartDate').value = start.toISOString().split('T')[0];
+      document.getElementById('historyEndDate').value = end.toISOString().split('T')[0];
+      loadSpecificTimeHistory();
+    };
+
+    window.loadCurrentMonth = function() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      document.getElementById('historyStartDate').value = `${year}-${month}-01`;
+      document.getElementById('historyEndDate').value = `${year}-${month}-30`;
+      loadSpecificTimeHistory();
+    };
+
+    window.openDetail = function(id) {
+      selectedRoomId = id;
+      switchTab('detail');
+
+      document.getElementById('detail-title').innerText = `TSPF3/1 (${selectedRoomId})`;
+      document.getElementById('chart-title').innerText = `กราฟแสดงผล Real-time 24 ชั่วโมง (${selectedRoomId})`;
+
+      if (latestRealtimeData) {
+        updateDetailView(latestRealtimeData);
+        loadFullDayHistoryForDetail(selectedRoomId);
+      }
+    };
+
+    async function loadFullDayHistoryForDetail(roomId) {
+      const todayStr = new Date().toISOString().split('T')[0];
       let tempArr = new Array(24).fill(null);
       let humArr = new Array(24).fill(null);
       let windArr = new Array(24).fill(null);
 
-      const barnKey = `barn_${selectedRoomId}`;
-      const barnData = data[barnKey];
+      try {
+        let snapshot = await get(ref(db, `history/${todayStr}/${roomId}`));
+        let dayData = snapshot.val();
 
-      if (barnData && barnData.history) {
-        const hoursNode = barnData.history;
-        for (let hourKey in hoursNode) {
-          const val = hoursNode[hourKey];
-          const hourNum = Number(hourKey);
-          if (!isNaN(hourNum) && hourNum >= 0 && hourNum <= 23 && val) {
-            const t = val.temperature !== undefined ? val.temperature : val.temp;
-            const h = val.humidity !== undefined ? val.humidity : val.hum;
-            const w = val.wind_speed !== undefined ? val.wind_speed : val.wind;
+        if (!dayData) {
+          let generalSnap = await get(ref(db, `history/${todayStr}`));
+          dayData = generalSnap.val();
+        }
 
-            if (t !== undefined && t !== "") tempArr[hourNum] = Number(t);
-            if (h !== undefined && h !== "") humArr[hourNum] = Number(h);
-            if (w !== undefined && w !== "") windArr[hourNum] = Number(w);
+        if (dayData) {
+          for (let i = 0; i < 24; i++) {
+            let hourStr = String(i).padStart(2, '0');
+            let val = dayData[hourStr];
+            if (val) {
+              const t = val.temperature !== undefined ? val.temperature : val.temp;
+              const h = val.humidity !== undefined ? val.humidity : val.hum;
+              const w = val.wind_speed !== undefined ? val.wind_speed : val.wind;
+
+              if (t !== undefined && t !== "") tempArr[i] = Number(t);
+              if (h !== undefined && h !== "") humArr[i] = Number(h);
+              if (w !== undefined && w !== "") windArr[i] = Number(w);
+            }
           }
         }
-      }
 
-      const currentHour = new Date().getHours();
-      if (barnData && barnData.temperature !== undefined && tempArr[currentHour] === null) {
-        tempArr[currentHour] = Number(barnData.temperature);
-        humArr[currentHour] = Number(barnData.humidity);
-        windArr[currentHour] = Number(barnData.wind_speed);
-      }
+        const currentHour = new Date().getHours();
+        if (latestRealtimeData) {
+          const barnData = latestRealtimeData[`barn_${roomId}`];
+          if (barnData && barnData.temperature !== undefined && tempArr[currentHour] === null) {
+            tempArr[currentHour] = Number(barnData.temperature);
+            humArr[currentHour] = Number(barnData.humidity);
+            windArr[currentHour] = Number(barnData.wind_speed);
+          }
+        }
 
-      chartInstance.data.labels = hours24;
-      chartInstance.data.datasets[0].data = tempArr;
-      chartInstance.data.datasets[1].data = humArr;
-      chartInstance.data.datasets[2].data = windArr;
-      chartInstance.update('none');
+        realtimeChartInstance.data.datasets[0].data = tempArr;
+        realtimeChartInstance.data.datasets[1].data = humArr;
+        realtimeChartInstance.data.datasets[2].data = windArr;
+        realtimeChartInstance.update();
+
+      } catch (e) {
+        console.error("Error loading full day history for detail:", e);
+      }
     }
 
     function renderDashboard(data) {
@@ -533,10 +720,10 @@
       const now = new Date();
       const timeStr = now.toTimeString().split(' ')[0];
 
-      let onlineCount = 0;
-      let offlineCount = 0;
-      let alarmCount = 0;
+      let onlineCount = 0, offlineCount = 0, alarmCount = 0;
       let htmlContent = '';
+      let hasActiveAlarm = false;
+      let alarmMessages = [];
 
       roomList.forEach(id => {
         const barnKey = `barn_${id}`;
@@ -546,7 +733,14 @@
         if (isOnline) onlineCount++;
         else offlineCount++;
 
-        if (barn && (barn.temperature > 34.0 || barn.wind_speed <= 0)) {
+        // เงื่อนไขนับ Alarm (อุณหภูมิเกินเกณฑ์ Max หรือลมเป็นศูนย์)
+        if (isOnline && barn && (barn.temperature > currentMaxLimit || barn.wind_speed <= 0)) {
+          alarmCount++;
+          hasActiveAlarm = true;
+          if (barn.temperature > currentMaxLimit) alarmMessages.push(`เล้า ${id} อุณหภูมิสูง (${barn.temperature}°C)`);
+          if (barn.wind_speed <= 0) alarmMessages.push(`เล้า ${id} ลมหยุดหมุน`);
+        } else if (!isOnline) {
+          // ถือว่า Offline เป็น Alarm ด้วยเช่นกัน
           alarmCount++;
         }
 
@@ -596,13 +790,27 @@
         `;
       });
 
+      // ควบคุมแถบแบนเนอร์และเสียงเตือน
+      const banner = document.getElementById('alarm-banner');
+      const bannerText = document.getElementById('alarm-banner-text');
+      if (hasActiveAlarm) {
+        banner.classList.remove('hidden');
+        bannerText.innerText = "🚨 แจ้งเตือนภัย: " + alarmMessages.join(" | ");
+        startAlarmSound();
+      } else {
+        banner.classList.add('hidden');
+        stopAlarmSound();
+      }
+
       document.getElementById('summary-total').innerText = roomList.length;
       document.getElementById('summary-online').innerText = onlineCount;
       document.getElementById('summary-offline').innerText = offlineCount;
       document.getElementById('summary-alarm').innerText = alarmCount;
       deviceList.innerHTML = htmlContent;
 
-      updateDetailView(data);
+      if (document.getElementById('detail-view').classList.contains('hidden') === false) {
+        updateDetailView(data);
+      }
     }
 
     function updateDetailView(data) {
@@ -615,10 +823,6 @@
       const tempValue = isOnline && barn.temperature !== undefined ? Number(barn.temperature).toFixed(1) : "---";
       const humValue  = isOnline && barn.humidity !== undefined ? Number(barn.humidity).toFixed(1) : "---";
       const windValue = isOnline && barn.wind_speed !== undefined ? Number(barn.wind_speed).toFixed(2) : "---";
-
-      document.getElementById('detail-title').innerText = `TSPF3/1 (${selectedRoomId})`;
-      document.getElementById('pdf-main-title').innerText = `รายงานข้อมูลโรงเรือน TSPF3/1 (${selectedRoomId})`;
-      document.getElementById('chart-title').innerText = `กราฟแสดงผล TSPF3/1 (${selectedRoomId}) Real-time & ย้อนหลัง`;
 
       document.getElementById('detail-card-temp').innerText = tempValue;
       document.getElementById('detail-card-hum').innerText  = humValue;
@@ -634,21 +838,19 @@
       document.getElementById('detail-top-status').innerText = isOnline ? "• Online" : "• Offline";
     }
 
-    window.openDetail = function(id) {
-      selectedRoomId = id;
-      document.getElementById('main-view').classList.add('hidden');
-      document.getElementById('detail-view').classList.remove('hidden');
-      if (latestRealtimeData) {
-        updateDetailView(latestRealtimeData);
-      }
-      loadHistoryByDate();
-    };
-
-    window.closeDetail = function() {
-      document.getElementById('detail-view').classList.add('hidden');
-      document.getElementById('main-view').classList.remove('hidden');
-      isViewingHistory = false;
-      if (latestRealtimeData) updateChartData(latestRealtimeData);
+    window.downloadPDF = function() {
+      const container = document.getElementById('pdf-container');
+      const opt = {
+        margin:       [4, 4, 4, 4],
+        filename:     `TSPF3_1_${selectedRoomId}_Realtime.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+      document.body.classList.add('rendering-pdf');
+      html2pdf().from(container).set(opt).save().then(() => {
+        document.body.classList.remove('rendering-pdf');
+      });
     };
   </script>
 </body>
